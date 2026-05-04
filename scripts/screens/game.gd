@@ -1,6 +1,19 @@
 extends Node
 
 const BaseCampStateScript: GDScript = preload("res://scripts/state/base_camp_state.gd")
+const BUILDING_SCENES := {
+	"shelter": preload("res://scenes/buildings/shelter.tscn"),
+	"temple": preload("res://scenes/buildings/temple.tscn"),
+	"hall_of_devoted": preload("res://scenes/buildings/hall_of_devoted.tscn"),
+	"preacher_shelter": preload("res://scenes/buildings/preacher_shelter.tscn"),
+	"armory": preload("res://scenes/buildings/armory.tscn"),
+	"garrison": preload("res://scenes/buildings/garrison.tscn"),
+	"generals_quarters": preload("res://scenes/buildings/generals_quarters.tscn"),
+	"well": preload("res://scenes/buildings/well.tscn"),
+	"garden": preload("res://scenes/buildings/garden.tscn"),
+	"stone_pool": preload("res://scenes/buildings/stone_pool.tscn"),
+}
+const MARCUS_SCENE := preload("res://scenes/entities/marcus_character.tscn")
 
 # ── Resources ───────────────────────────────────────────────────────────────
 var gold: int = 100
@@ -530,8 +543,8 @@ func _show_road_hint(msg: String):
 
 
 func _make_building(type: String, pos: Vector2, label: String, interactive: bool) -> StaticBody2D:
-	var b := StaticBody2D.new()
-	b.set_script(load("res://scripts/entities/building.gd"))
+	var scene: PackedScene = BUILDING_SCENES.get(type, BUILDING_SCENES["shelter"])
+	var b: StaticBody2D = scene.instantiate()
 	b.building_type  = type
 	b.building_label = label
 	b.is_interactive = interactive
@@ -2762,8 +2775,7 @@ func _try_start_placement(type: String, cost: int):
 func _start_placement(type: String):
 	placing_building = true
 	placing_type = type
-	ghost_node = StaticBody2D.new()
-	ghost_node.set_script(load("res://scripts/entities/building.gd"))
+	ghost_node = BUILDING_SCENES.get(type, BUILDING_SCENES["shelter"]).instantiate()
 	ghost_node.building_type    = type
 	ghost_node.building_label   = ""
 	ghost_node.is_interactive   = false
@@ -2897,8 +2909,7 @@ func _complete_construction():
 			generals_quarters = b
 			b.tapped.connect(_on_generals_quarters_tapped)
 			# Spawn Marcus wandering around his new quarters
-			var marcus_script := load("res://scripts/entities/marcus_character.gd")
-			marcus_character_node = marcus_script.new()
+			marcus_character_node = MARCUS_SCENE.instantiate()
 			world.add_child(marcus_character_node)
 			marcus_character_node.setup(b.position + Vector2(0, 20))
 		"well", "garden", "stone_pool":

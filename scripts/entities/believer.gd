@@ -79,14 +79,6 @@ func setup(pos: Vector2, variant: int):
 	_pick_target()
 
 func _ready():
-	# Collision shape so CharacterBody2D can move
-	var shape = CollisionShape2D.new()
-	var cap = CapsuleShape2D.new()
-	cap.radius = 5.0
-	cap.height = 8.0
-	shape.shape = cap
-	add_child(shape)
-
 	# Build AnimatedSprite2D from sprite sheet (believers only)
 	_setup_anim_sprite()
 

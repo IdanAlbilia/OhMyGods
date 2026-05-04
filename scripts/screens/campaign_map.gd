@@ -12,6 +12,7 @@ const MAP_H             := 1100
 const ZOOM_MIN          := 0.40
 const ZOOM_MAX          := 2.50
 const ZOOM_FACTOR       := 1.12
+const PREACHER_SHELTER_SCENE := preload("res://scenes/buildings/preacher_shelter.tscn")
 
 # Palette
 const COL_GROUND := Color(0.72, 0.65, 0.50)
@@ -491,9 +492,7 @@ func _spawn_well() -> void:
 	add_child(s)
 
 func _spawn_camp_building() -> void:
-	var b := StaticBody2D.new()
-	b.set_script(load("res://scripts/entities/building.gd"))
-	b.building_type = "preacher_shelter"
+	var b: StaticBody2D = PREACHER_SHELTER_SCENE.instantiate()
 	b.position = Vector2(130, 510)
 	add_child(b)
 

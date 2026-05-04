@@ -16,13 +16,6 @@ var _anim: AnimatedSprite2D = null
 
 
 func _ready():
-	var shape := CollisionShape2D.new()
-	var cap   := CapsuleShape2D.new()
-	cap.radius = 6.0
-	cap.height = 10.0
-	shape.shape = cap
-	add_child(shape)
-
 	_anim = AnimatedSprite2D.new()
 	_anim.centered = true
 

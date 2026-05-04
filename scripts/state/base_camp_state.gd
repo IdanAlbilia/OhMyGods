@@ -3,7 +3,7 @@ extends RefCounted
 
 const BUILDING_SCRIPT := preload("res://scripts/entities/building.gd")
 const BELIEVER_SCENE := preload("res://scenes/believer.tscn")
-const MARCUS_SCRIPT := preload("res://scripts/entities/marcus_character.gd")
+const MARCUS_SCENE := preload("res://scenes/entities/marcus_character.tscn")
 
 const RESTORED_BUILD_TYPES := [
 	"temple",
@@ -227,7 +227,7 @@ static func _spawn_soldiers(game: Node) -> void:
 static func _spawn_marcus(game: Node, pos: Vector2) -> void:
 	if not game.marcus_obtained:
 		return
-	game.marcus_character_node = MARCUS_SCRIPT.new()
+	game.marcus_character_node = MARCUS_SCENE.instantiate()
 	game.world.add_child(game.marcus_character_node)
 	game.marcus_character_node.setup(pos + Vector2(0, 20))
 

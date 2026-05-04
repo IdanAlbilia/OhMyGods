@@ -1,6 +1,13 @@
-[gd_scene format=3 uid="uid://c4n8mxpq1r7vy"]
+[gd_scene load_steps=3 format=3 uid="uid://c4n8mxpq1r7vy"]
 
 [ext_resource type="Script" uid="uid://on8n2qtuhh2w" path="res://scripts/entities/believer.gd" id="1_bel01"]
 
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_collision"]
+radius = 5.0
+height = 8.0
+
 [node name="Believer" type="CharacterBody2D"]
 script = ExtResource("1_bel01")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CapsuleShape2D_collision")

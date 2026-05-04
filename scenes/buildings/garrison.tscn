@@ -1,0 +1,21 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/entities/building.gd" id="1_building"]
+[ext_resource type="Texture2D" path="res://assets/buildings/Comp3.png" id="2_texture"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_collision"]
+size = Vector2(139.4, 93.5)
+
+[node name="Garrison" type="StaticBody2D"]
+script = ExtResource("1_building")
+building_type = "garrison"
+building_label = "Garrison"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -104.4)
+shape = SubResource("RectangleShape2D_collision")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -67)
+scale = Vector2(0.332031, 0.332031)
+texture = ExtResource("2_texture")
