@@ -11,13 +11,13 @@ config_version=5
 [application]
 
 config/name="OhMyGod_Prototype"
-run/main_scene="res://selection.tscn"
+run/main_scene="res://scenes/selection.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
-config/icon="res://icon.svg"
+config/icon="res://assets/ui/icon.svg"
 
 [autoload]
 
-GameData="*res://game_data.gd"
+GameData="*res://scripts/autoload/game_data.gd"
 
 [physics]
 
