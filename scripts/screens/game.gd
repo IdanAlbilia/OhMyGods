@@ -6,6 +6,7 @@ const CrusadeRewardsScript: GDScript = preload("res://scripts/systems/crusade_re
 const RoadTilesScript: GDScript = preload("res://scripts/systems/road_tiles.gd")
 const RoadPlacementControllerScript: GDScript = preload("res://scripts/systems/road_placement_controller.gd")
 const CameraControllerScript: GDScript = preload("res://scripts/systems/camera_controller.gd")
+const CampaignNavigationControllerScript: GDScript = preload("res://scripts/systems/campaign_navigation_controller.gd")
 const TutorialCopyScript: GDScript = preload("res://scripts/ui/tutorial/tutorial_copy.gd")
 const BuildingPanelFactoryScript: GDScript = preload("res://scripts/ui/building_panel_factory.gd")
 const WHEEL_POPUP_SCENE := preload("res://scenes/ui/wheel_of_faith_popup.tscn")
@@ -219,6 +220,7 @@ var road_rotate_btn:   Button   = null
 var placed_road_tiles: Array = []
 var road_controller: RoadPlacementController = null
 var camera_controller: CameraController = null
+var campaign_navigation_controller: RefCounted = null
 
 # Active construction (one at a time)
 var active_construction_node: StaticBody2D = null
@@ -253,6 +255,7 @@ var blocked_zones: Array = []
 func _ready():
 	_build_world()
 	_build_ui()
+	campaign_navigation_controller = CampaignNavigationControllerScript.new()
 	if GameData.base_camp_state.is_empty():
 		_spawn_believers()
 	else:
@@ -3135,12 +3138,10 @@ func _on_hero_deck_chip_input(event: InputEvent):
 
 
 func _on_campaign_chip_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		GameData.base_camp_state = BaseCampStateScript.capture(self)
-		GameData.mission_active = false   # fresh start — discard any saved state
-		get_tree().change_scene_to_file("res://scenes/campaign_map.tscn")
+	if campaign_navigation_controller != null and campaign_navigation_controller.is_left_click(event):
+		campaign_navigation_controller.start_new_campaign(self)
+
 
 func _on_return_mission_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		GameData.base_camp_state = BaseCampStateScript.capture(self)
-		get_tree().change_scene_to_file("res://scenes/campaign_map.tscn")
+	if campaign_navigation_controller != null and campaign_navigation_controller.is_left_click(event):
+		campaign_navigation_controller.return_to_active_campaign(self)
