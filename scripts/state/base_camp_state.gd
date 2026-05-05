@@ -109,7 +109,7 @@ static func _restore_roads(game: Node, roads: Array) -> void:
 	for road in roads:
 		var type := str(road.get("type", ""))
 		var rotation := int(road.get("rotation", 0))
-		var spr := RoadTilesScript.make_sprite(type, road.get("position", Vector2.ZERO), rotation)
+		var spr: Sprite2D = RoadTilesScript.make_sprite(type, road.get("position", Vector2.ZERO), rotation)
 		game.world.add_child(spr)
 		game.world.move_child(spr, 1)
 		game.placed_road_tiles.append(road.duplicate(true))

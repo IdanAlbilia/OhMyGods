@@ -929,7 +929,7 @@ func _cancel_road_placement():
 	road_rotate_btn.visible = false
 
 func _place_road_tile(pos: Vector2):
-	var spr := RoadTilesScript.make_sprite(placing_road_type, pos, road_rotation_deg)
+	var spr: Sprite2D = RoadTilesScript.make_sprite(placing_road_type, pos, road_rotation_deg)
 	world.add_child(spr)
 	world.move_child(spr, 1)   # render below buildings and characters
 	placed_road_tiles.append({
@@ -949,7 +949,7 @@ func _build_build_menu(ui: CanvasLayer):
 func _build_conversion_panel(ui: CanvasLayer):
 	conversion_panel = BuildingPanelFactoryScript.make_panel(ui, Color(0.35, 0.55, 1.00), "Hall of the Devoted")
 
-	var body := BuildingPanelFactoryScript.panel_body(conversion_panel)
+	var body: VBoxContainer = BuildingPanelFactoryScript.panel_body(conversion_panel)
 
 	# Status + progress
 	conversion_label = Label.new()
@@ -1008,7 +1008,7 @@ func _build_conversion_panel(ui: CanvasLayer):
 func _build_training_panel(ui: CanvasLayer):
 	training_panel = BuildingPanelFactoryScript.make_panel(ui, Color(0.85, 0.28, 0.18), "Barracks")
 
-	var body := BuildingPanelFactoryScript.panel_body(training_panel)
+	var body: VBoxContainer = BuildingPanelFactoryScript.panel_body(training_panel)
 
 	# Status + progress
 	training_label = Label.new()
@@ -1066,7 +1066,7 @@ func _build_training_panel(ui: CanvasLayer):
 
 func _build_preacher_shelter_panel(ui: CanvasLayer):
 	preacher_shelter_panel = BuildingPanelFactoryScript.make_panel(ui, Color(0.30, 0.75, 0.72), "Preacher Shelter")
-	var body := BuildingPanelFactoryScript.panel_body(preacher_shelter_panel)
+	var body: VBoxContainer = BuildingPanelFactoryScript.panel_body(preacher_shelter_panel)
 
 	shelter_preacher_label = BuildingPanelFactoryScript.count_row(body, "Preachers", Color(0.30, 0.82, 0.75))
 
@@ -1221,7 +1221,7 @@ func _build_preacher_shelter_panel(ui: CanvasLayer):
 
 func _build_shelter_panel(ui: CanvasLayer):
 	shelter_panel = BuildingPanelFactoryScript.make_panel(ui, Color(0.85, 0.55, 0.18), "Humble Shelter")
-	var body := BuildingPanelFactoryScript.panel_body(shelter_panel)
+	var body: VBoxContainer = BuildingPanelFactoryScript.panel_body(shelter_panel)
 
 	shelter_believer_label = BuildingPanelFactoryScript.count_row(body, "Believers", Color(0.92, 0.75, 0.38))
 
@@ -1344,7 +1344,7 @@ func _build_shelter_panel(ui: CanvasLayer):
 
 func _build_extra_shelter_panel(ui: CanvasLayer):
 	extra_shelter_panel = BuildingPanelFactoryScript.make_panel(ui, Color(0.85, 0.55, 0.18), "Believer Shelter")
-	var body := BuildingPanelFactoryScript.panel_body(extra_shelter_panel)
+	var body: VBoxContainer = BuildingPanelFactoryScript.panel_body(extra_shelter_panel)
 
 	extra_shelter_label = BuildingPanelFactoryScript.count_row(body, "Believers", Color(0.92, 0.75, 0.38))
 
@@ -1706,7 +1706,7 @@ func _build_temple_panel(ui: CanvasLayer):
 
 func _build_garrison_panel(ui: CanvasLayer):
 	garrison_panel = BuildingPanelFactoryScript.make_panel(ui, Color(0.75, 0.22, 0.14), "Garrison")
-	var body := BuildingPanelFactoryScript.panel_body(garrison_panel)
+	var body: VBoxContainer = BuildingPanelFactoryScript.panel_body(garrison_panel)
 
 	garrison_soldier_label = BuildingPanelFactoryScript.count_row(body, "Soldiers housed", Color(0.90, 0.55, 0.18))
 
