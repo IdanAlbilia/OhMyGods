@@ -4,6 +4,7 @@ const BaseCampStateScript: GDScript = preload("res://scripts/state/base_camp_sta
 const WheelOfFaithScript: GDScript = preload("res://scripts/systems/wheel_of_faith.gd")
 const CrusadeRewardsScript: GDScript = preload("res://scripts/systems/crusade_rewards.gd")
 const TutorialCopyScript: GDScript = preload("res://scripts/ui/tutorial/tutorial_copy.gd")
+const BuildingPanelFactoryScript: GDScript = preload("res://scripts/ui/building_panel_factory.gd")
 const WHEEL_POPUP_SCENE := preload("res://scenes/ui/wheel_of_faith_popup.tscn")
 const CRUSADE_RESULT_POPUP_SCENE := preload("res://scenes/ui/crusade_result_popup.tscn")
 const BUILD_MENU_SCENE := preload("res://scenes/ui/build_menu.tscn")
@@ -967,9 +968,9 @@ func _build_build_menu(ui: CanvasLayer):
 
 
 func _build_conversion_panel(ui: CanvasLayer):
-	conversion_panel = _make_building_panel(ui, Color(0.35, 0.55, 1.00), "Hall of the Devoted")
+	conversion_panel = BuildingPanelFactoryScript.make_panel(ui, Color(0.35, 0.55, 1.00), "Hall of the Devoted")
 
-	var body := _panel_body(conversion_panel)
+	var body := BuildingPanelFactoryScript.panel_body(conversion_panel)
 
 	# Status + progress
 	conversion_label = Label.new()
@@ -1001,7 +1002,7 @@ func _build_conversion_panel(ui: CanvasLayer):
 	convert_btn.text = "Convert Believer  (1 hr)"
 	convert_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	convert_btn.pressed.connect(_on_convert_pressed)
-	_style_action_btn(convert_btn, Color(0.35, 0.55, 1.00))
+	BuildingPanelFactoryScript.style_action_btn(convert_btn, Color(0.35, 0.55, 1.00))
 	btn_row.add_child(convert_btn)
 
 	conversion_rush_btn = Button.new()
@@ -1010,10 +1011,10 @@ func _build_conversion_panel(ui: CanvasLayer):
 	conversion_rush_btn.custom_minimum_size = Vector2(70, 0)
 	conversion_rush_btn.visible = false
 	conversion_rush_btn.pressed.connect(_on_conversion_rush_pressed)
-	_style_action_btn(conversion_rush_btn, Color(0.85, 0.65, 0.10))
+	BuildingPanelFactoryScript.style_action_btn(conversion_rush_btn, Color(0.85, 0.65, 0.10))
 	btn_row.add_child(conversion_rush_btn)
 
-	_panel_sep(body, Color(0.35, 0.55, 1.00))
+	BuildingPanelFactoryScript.panel_sep(body, Color(0.35, 0.55, 1.00))
 
 	# Upgrade button (locked)
 	var upg := Button.new()
@@ -1021,14 +1022,14 @@ func _build_conversion_panel(ui: CanvasLayer):
 	upg.text = "⬆  Upgrade Building   (Coming Soon)"
 	upg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	upg.disabled = true
-	_style_action_btn(upg, Color(0.50, 0.48, 0.44))
+	BuildingPanelFactoryScript.style_action_btn(upg, Color(0.50, 0.48, 0.44))
 	body.add_child(upg)
 
 
 func _build_training_panel(ui: CanvasLayer):
-	training_panel = _make_building_panel(ui, Color(0.85, 0.28, 0.18), "Barracks")
+	training_panel = BuildingPanelFactoryScript.make_panel(ui, Color(0.85, 0.28, 0.18), "Barracks")
 
-	var body := _panel_body(training_panel)
+	var body := BuildingPanelFactoryScript.panel_body(training_panel)
 
 	# Status + progress
 	training_label = Label.new()
@@ -1060,7 +1061,7 @@ func _build_training_panel(ui: CanvasLayer):
 	train_btn.text = "Train Soldier  (30 min)"
 	train_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	train_btn.pressed.connect(_on_train_pressed)
-	_style_action_btn(train_btn, Color(0.85, 0.28, 0.18))
+	BuildingPanelFactoryScript.style_action_btn(train_btn, Color(0.85, 0.28, 0.18))
 	btn_row.add_child(train_btn)
 
 	training_rush_btn = Button.new()
@@ -1069,10 +1070,10 @@ func _build_training_panel(ui: CanvasLayer):
 	training_rush_btn.custom_minimum_size = Vector2(70, 0)
 	training_rush_btn.visible = false
 	training_rush_btn.pressed.connect(_on_training_rush_pressed)
-	_style_action_btn(training_rush_btn, Color(0.85, 0.65, 0.10))
+	BuildingPanelFactoryScript.style_action_btn(training_rush_btn, Color(0.85, 0.65, 0.10))
 	btn_row.add_child(training_rush_btn)
 
-	_panel_sep(body, Color(0.85, 0.28, 0.18))
+	BuildingPanelFactoryScript.panel_sep(body, Color(0.85, 0.28, 0.18))
 
 	# Upgrade button (locked)
 	var upg := Button.new()
@@ -1080,154 +1081,24 @@ func _build_training_panel(ui: CanvasLayer):
 	upg.text = "⬆  Upgrade Building   (Coming Soon)"
 	upg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	upg.disabled = true
-	_style_action_btn(upg, Color(0.50, 0.48, 0.44))
+	BuildingPanelFactoryScript.style_action_btn(upg, Color(0.50, 0.48, 0.44))
 	body.add_child(upg)
 
 
-# ── Panel builder helpers ─────────────────────────────────────────────────────
-func _make_building_panel(ui: CanvasLayer, accent: Color, title: String) -> PanelContainer:
-	var panel := PanelContainer.new()
-	panel.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	# Top-right corner, below top bar
-	panel.anchor_left   = 1.0
-	panel.anchor_right  = 1.0
-	panel.anchor_top    = 0.0
-	panel.anchor_bottom = 0.0
-	panel.offset_left   = -358
-	panel.offset_right  = -8
-	panel.offset_top    = 62
-	panel.offset_bottom = 310
-	panel.visible = false
-
-	var ps := StyleBoxFlat.new()
-	ps.bg_color = Color(0.07, 0.05, 0.12, 0.97)
-	ps.border_color = accent
-	ps.set_border_width_all(2)
-	ps.set_corner_radius_all(10)
-	ps.content_margin_left = 0; ps.content_margin_right = 0
-	ps.content_margin_top  = 0; ps.content_margin_bottom = 10
-	panel.add_theme_stylebox_override("panel", ps)
-	ui.add_child(panel)
-
-	var outer := VBoxContainer.new()
-	outer.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	outer.add_theme_constant_override("separation", 0)
-	panel.add_child(outer)
-
-	# Title bar
-	var tbar := ColorRect.new()
-	tbar.color = accent.darkened(0.45)
-	tbar.custom_minimum_size = Vector2(0, 40)
-	outer.add_child(tbar)
-
-	var trow := HBoxContainer.new()
-	trow.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	trow.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	tbar.add_child(trow)
-
-	var tlbl := Label.new()
-	tlbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	tlbl.text = "  " + title
-	tlbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	tlbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tlbl.add_theme_font_size_override("font_size", 15)
-	tlbl.add_theme_color_override("font_color", accent.lightened(0.55))
-	trow.add_child(tlbl)
-
-	var close_x := Button.new()
-	close_x.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	close_x.text = "✕"
-	close_x.flat = true
-	close_x.custom_minimum_size = Vector2(40, 40)
-	close_x.add_theme_font_size_override("font_size", 16)
-	close_x.add_theme_color_override("font_color", accent.lightened(0.40))
-	close_x.pressed.connect(func(): panel.visible = false)
-	trow.add_child(close_x)
-
-	return panel
-
-
-func _panel_body(panel: PanelContainer) -> VBoxContainer:
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 14)
-	margin.add_theme_constant_override("margin_right", 14)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_bottom", 0)
-	panel.get_child(0).add_child(margin)   # outer VBox
-
-	var body := VBoxContainer.new()
-	body.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	body.add_theme_constant_override("separation", 8)
-	margin.add_child(body)
-	return body
-
-
-func _count_row(body: VBoxContainer, label_text: String, value_color: Color) -> Label:
-	var row := HBoxContainer.new()
-	row.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	body.add_child(row)
-
-	var lbl := Label.new()
-	lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	lbl.text = label_text + ":"
-	lbl.add_theme_font_size_override("font_size", 14)
-	lbl.add_theme_color_override("font_color", Color(0.72, 0.70, 0.66))
-	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(lbl)
-
-	var val := Label.new()
-	val.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	val.text_direction = Control.TEXT_DIRECTION_LTR
-	val.text = "0 / 5"
-	val.add_theme_font_size_override("font_size", 16)
-	val.add_theme_color_override("font_color", value_color)
-	row.add_child(val)
-	return val
-
-
-func _panel_sep(body: VBoxContainer, accent: Color):
-	var sep := ColorRect.new()
-	sep.color = accent.darkened(0.40)
-	sep.color.a = 0.45
-	sep.custom_minimum_size = Vector2(0, 1)
-	body.add_child(sep)
-
-
-func _style_action_btn(btn: Button, accent: Color):
-	btn.add_theme_font_size_override("font_size", 13)
-	var s := StyleBoxFlat.new()
-	s.bg_color = accent.darkened(0.45)
-	s.border_color = accent
-	s.set_border_width_all(1)
-	s.set_corner_radius_all(5)
-	s.content_margin_left = 10; s.content_margin_right = 10
-	s.content_margin_top = 7;   s.content_margin_bottom = 7
-	btn.add_theme_stylebox_override("normal", s)
-	var h := s.duplicate() as StyleBoxFlat
-	h.bg_color = accent.darkened(0.20)
-	btn.add_theme_stylebox_override("hover", h)
-	var d := s.duplicate() as StyleBoxFlat
-	d.bg_color = Color(0.12, 0.10, 0.18)
-	d.border_color = accent.darkened(0.40)
-	btn.add_theme_stylebox_override("disabled", d)
-	btn.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
-	btn.add_theme_color_override("font_disabled_color", Color(0.45, 0.43, 0.40))
-
-
 func _build_preacher_shelter_panel(ui: CanvasLayer):
-	preacher_shelter_panel = _make_building_panel(ui, Color(0.30, 0.75, 0.72), "Preacher Shelter")
-	var body := _panel_body(preacher_shelter_panel)
+	preacher_shelter_panel = BuildingPanelFactoryScript.make_panel(ui, Color(0.30, 0.75, 0.72), "Preacher Shelter")
+	var body := BuildingPanelFactoryScript.panel_body(preacher_shelter_panel)
 
-	shelter_preacher_label = _count_row(body, "Preachers", Color(0.30, 0.82, 0.75))
+	shelter_preacher_label = BuildingPanelFactoryScript.count_row(body, "Preachers", Color(0.30, 0.82, 0.75))
 
-	_panel_sep(body, Color(0.30, 0.75, 0.72))
+	BuildingPanelFactoryScript.panel_sep(body, Color(0.30, 0.75, 0.72))
 
 	# ── Go button ──
 	spread_go_btn = Button.new()
 	spread_go_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	spread_go_btn.text = "✉  Spread the Faith   (2 hr)"
 	spread_go_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_action_btn(spread_go_btn, Color(0.30, 0.75, 0.72))
+	BuildingPanelFactoryScript.style_action_btn(spread_go_btn, Color(0.30, 0.75, 0.72))
 	spread_go_btn.pressed.connect(_on_spread_pressed)
 	body.add_child(spread_go_btn)
 
@@ -1267,7 +1138,7 @@ func _build_preacher_shelter_panel(ui: CanvasLayer):
 	var confirm_btn := Button.new()
 	confirm_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	confirm_btn.text = "Send →"
-	_style_action_btn(confirm_btn, Color(0.30, 0.75, 0.72))
+	BuildingPanelFactoryScript.style_action_btn(confirm_btn, Color(0.30, 0.75, 0.72))
 	confirm_btn.pressed.connect(_on_spread_confirm_pressed)
 	spread_selector_row.add_child(confirm_btn)
 
@@ -1302,18 +1173,18 @@ func _build_preacher_shelter_panel(ui: CanvasLayer):
 	spread_rush_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	spread_rush_btn.text = "⚡ Rush  (1 Faith = -10 min)"
 	spread_rush_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_action_btn(spread_rush_btn, Color(0.72, 0.55, 1.00))
+	BuildingPanelFactoryScript.style_action_btn(spread_rush_btn, Color(0.72, 0.55, 1.00))
 	spread_rush_btn.pressed.connect(_on_spread_rush_pressed)
 	spread_progress_container.add_child(spread_rush_btn)
 
-	_panel_sep(body, Color(0.30, 0.75, 0.72))
+	BuildingPanelFactoryScript.panel_sep(body, Color(0.30, 0.75, 0.72))
 
 	var upg := Button.new()
 	upg.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	upg.text = "⬆  Upgrade Building   (Coming Soon)"
 	upg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	upg.disabled = true
-	_style_action_btn(upg, Color(0.50, 0.48, 0.44))
+	BuildingPanelFactoryScript.style_action_btn(upg, Color(0.50, 0.48, 0.44))
 	body.add_child(upg)
 
 	# ── Mission result popup (CanvasLayer level) ──
@@ -1365,17 +1236,17 @@ func _build_preacher_shelter_panel(ui: CanvasLayer):
 	ok_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	ok_btn.text = "Praise be!"
 	ok_btn.pressed.connect(func(): overlay.visible = false)
-	_style_action_btn(ok_btn, Color(0.30, 0.75, 0.72))
+	BuildingPanelFactoryScript.style_action_btn(ok_btn, Color(0.30, 0.75, 0.72))
 	vb.add_child(ok_btn)
 
 
 func _build_shelter_panel(ui: CanvasLayer):
-	shelter_panel = _make_building_panel(ui, Color(0.85, 0.55, 0.18), "Humble Shelter")
-	var body := _panel_body(shelter_panel)
+	shelter_panel = BuildingPanelFactoryScript.make_panel(ui, Color(0.85, 0.55, 0.18), "Humble Shelter")
+	var body := BuildingPanelFactoryScript.panel_body(shelter_panel)
 
-	shelter_believer_label = _count_row(body, "Believers", Color(0.92, 0.75, 0.38))
+	shelter_believer_label = BuildingPanelFactoryScript.count_row(body, "Believers", Color(0.92, 0.75, 0.38))
 
-	_panel_sep(body, Color(0.85, 0.55, 0.18))
+	BuildingPanelFactoryScript.panel_sep(body, Color(0.85, 0.55, 0.18))
 
 	# Tutorial hint — shown only during TAP_GO_PRAY step
 	pray_tutorial_arrow = Label.new()
@@ -1392,7 +1263,7 @@ func _build_shelter_panel(ui: CanvasLayer):
 	pray_go_btn.text = "🙏  Go Pray  (30 min)"
 	pray_go_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pray_go_btn.pressed.connect(_on_go_pray_pressed)
-	_style_action_btn(pray_go_btn, Color(0.55, 0.35, 0.82))
+	BuildingPanelFactoryScript.style_action_btn(pray_go_btn, Color(0.55, 0.35, 0.82))
 	body.add_child(pray_go_btn)
 
 	# Selector row (hidden initially)
@@ -1410,7 +1281,7 @@ func _build_shelter_panel(ui: CanvasLayer):
 		prayer_selector_count = max(1, prayer_selector_count - 1)
 		_update_pray_selector_label()
 	)
-	_style_action_btn(minus_btn, Color(0.55, 0.35, 0.82))
+	BuildingPanelFactoryScript.style_action_btn(minus_btn, Color(0.55, 0.35, 0.82))
 	pray_selector_row.add_child(minus_btn)
 
 	pray_selector_label = Label.new()
@@ -1431,21 +1302,21 @@ func _build_shelter_panel(ui: CanvasLayer):
 		prayer_selector_count = min(believers_count, prayer_selector_count + 1)
 		_update_pray_selector_label()
 	)
-	_style_action_btn(plus_btn, Color(0.55, 0.35, 0.82))
+	BuildingPanelFactoryScript.style_action_btn(plus_btn, Color(0.55, 0.35, 0.82))
 	pray_selector_row.add_child(plus_btn)
 
 	var confirm_btn := Button.new()
 	confirm_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	confirm_btn.text = "Send to Pray"
 	confirm_btn.pressed.connect(_on_pray_confirm_pressed)
-	_style_action_btn(confirm_btn, Color(0.55, 0.35, 0.82))
+	BuildingPanelFactoryScript.style_action_btn(confirm_btn, Color(0.55, 0.35, 0.82))
 	pray_selector_row.add_child(confirm_btn)
 
 	var cancel_btn := Button.new()
 	cancel_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	cancel_btn.text = "Cancel"
 	cancel_btn.pressed.connect(_on_pray_cancel_pressed)
-	_style_action_btn(cancel_btn, Color(0.50, 0.48, 0.44))
+	BuildingPanelFactoryScript.style_action_btn(cancel_btn, Color(0.50, 0.48, 0.44))
 	pray_selector_row.add_child(cancel_btn)
 
 	# Progress container (hidden initially)
@@ -1478,27 +1349,27 @@ func _build_shelter_panel(ui: CanvasLayer):
 	pray_rush_btn.text = "⚡ -10m"
 	pray_rush_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pray_rush_btn.pressed.connect(_on_pray_rush_pressed)
-	_style_action_btn(pray_rush_btn, Color(0.85, 0.65, 0.10))
+	BuildingPanelFactoryScript.style_action_btn(pray_rush_btn, Color(0.85, 0.65, 0.10))
 	pray_progress_container.add_child(pray_rush_btn)
 
-	_panel_sep(body, Color(0.85, 0.55, 0.18))
+	BuildingPanelFactoryScript.panel_sep(body, Color(0.85, 0.55, 0.18))
 
 	var upg := Button.new()
 	upg.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	upg.text = "⬆  Upgrade Building   (Coming Soon)"
 	upg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	upg.disabled = true
-	_style_action_btn(upg, Color(0.50, 0.48, 0.44))
+	BuildingPanelFactoryScript.style_action_btn(upg, Color(0.50, 0.48, 0.44))
 	body.add_child(upg)
 
 
 func _build_extra_shelter_panel(ui: CanvasLayer):
-	extra_shelter_panel = _make_building_panel(ui, Color(0.85, 0.55, 0.18), "Believer Shelter")
-	var body := _panel_body(extra_shelter_panel)
+	extra_shelter_panel = BuildingPanelFactoryScript.make_panel(ui, Color(0.85, 0.55, 0.18), "Believer Shelter")
+	var body := BuildingPanelFactoryScript.panel_body(extra_shelter_panel)
 
-	extra_shelter_label = _count_row(body, "Believers", Color(0.92, 0.75, 0.38))
+	extra_shelter_label = BuildingPanelFactoryScript.count_row(body, "Believers", Color(0.92, 0.75, 0.38))
 
-	_panel_sep(body, Color(0.85, 0.55, 0.18))
+	BuildingPanelFactoryScript.panel_sep(body, Color(0.85, 0.55, 0.18))
 
 	# Go Pray button
 	extra_pray_go_btn = Button.new()
@@ -1506,7 +1377,7 @@ func _build_extra_shelter_panel(ui: CanvasLayer):
 	extra_pray_go_btn.text = "🙏  Go Pray  (30 min)"
 	extra_pray_go_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	extra_pray_go_btn.pressed.connect(_on_extra_go_pray_pressed)
-	_style_action_btn(extra_pray_go_btn, Color(0.55, 0.35, 0.82))
+	BuildingPanelFactoryScript.style_action_btn(extra_pray_go_btn, Color(0.55, 0.35, 0.82))
 	body.add_child(extra_pray_go_btn)
 
 	# Selector row
@@ -1524,7 +1395,7 @@ func _build_extra_shelter_panel(ui: CanvasLayer):
 		extra_pray_selector_count = max(1, extra_pray_selector_count - 1)
 		_update_extra_pray_selector_label()
 	)
-	_style_action_btn(minus_btn, Color(0.55, 0.35, 0.82))
+	BuildingPanelFactoryScript.style_action_btn(minus_btn, Color(0.55, 0.35, 0.82))
 	extra_pray_selector_row.add_child(minus_btn)
 
 	extra_pray_selector_label = Label.new()
@@ -1546,14 +1417,14 @@ func _build_extra_shelter_panel(ui: CanvasLayer):
 		extra_pray_selector_count = min(extra_pray_selector_count + 1, mini(in_shelter, temple_slots))
 		_update_extra_pray_selector_label()
 	)
-	_style_action_btn(plus_btn, Color(0.55, 0.35, 0.82))
+	BuildingPanelFactoryScript.style_action_btn(plus_btn, Color(0.55, 0.35, 0.82))
 	extra_pray_selector_row.add_child(plus_btn)
 
 	var confirm_btn := Button.new()
 	confirm_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	confirm_btn.text = "Send to Pray"
 	confirm_btn.pressed.connect(_on_extra_pray_confirm_pressed)
-	_style_action_btn(confirm_btn, Color(0.55, 0.35, 0.82))
+	BuildingPanelFactoryScript.style_action_btn(confirm_btn, Color(0.55, 0.35, 0.82))
 	extra_pray_selector_row.add_child(confirm_btn)
 
 	var cancel_btn := Button.new()
@@ -1563,7 +1434,7 @@ func _build_extra_shelter_panel(ui: CanvasLayer):
 		extra_pray_selector_row.visible = false
 		extra_pray_go_btn.visible = true
 	)
-	_style_action_btn(cancel_btn, Color(0.50, 0.48, 0.44))
+	BuildingPanelFactoryScript.style_action_btn(cancel_btn, Color(0.50, 0.48, 0.44))
 	extra_pray_selector_row.add_child(cancel_btn)
 
 	# Progress container (shown during active session from this shelter)
@@ -1581,14 +1452,14 @@ func _build_extra_shelter_panel(ui: CanvasLayer):
 	prog_lbl.add_theme_color_override("font_color", Color(0.88, 0.86, 0.82))
 	extra_pray_progress_container.add_child(prog_lbl)
 
-	_panel_sep(body, Color(0.85, 0.55, 0.18))
+	BuildingPanelFactoryScript.panel_sep(body, Color(0.85, 0.55, 0.18))
 
 	var upg := Button.new()
 	upg.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	upg.text = "⬆  Upgrade Building   (Coming Soon)"
 	upg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	upg.disabled = true
-	_style_action_btn(upg, Color(0.50, 0.48, 0.44))
+	BuildingPanelFactoryScript.style_action_btn(upg, Color(0.50, 0.48, 0.44))
 	body.add_child(upg)
 
 
@@ -1855,19 +1726,19 @@ func _build_temple_panel(ui: CanvasLayer):
 
 
 func _build_garrison_panel(ui: CanvasLayer):
-	garrison_panel = _make_building_panel(ui, Color(0.75, 0.22, 0.14), "Garrison")
-	var body := _panel_body(garrison_panel)
+	garrison_panel = BuildingPanelFactoryScript.make_panel(ui, Color(0.75, 0.22, 0.14), "Garrison")
+	var body := BuildingPanelFactoryScript.panel_body(garrison_panel)
 
-	garrison_soldier_label = _count_row(body, "Soldiers housed", Color(0.90, 0.55, 0.18))
+	garrison_soldier_label = BuildingPanelFactoryScript.count_row(body, "Soldiers housed", Color(0.90, 0.55, 0.18))
 
-	_panel_sep(body, Color(0.75, 0.22, 0.14))
+	BuildingPanelFactoryScript.panel_sep(body, Color(0.75, 0.22, 0.14))
 
 	# ── Go on a Crusade button ──
 	crusade_go_btn = Button.new()
 	crusade_go_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	crusade_go_btn.text = "⚔  Go on a Crusade   (2 hr)"
 	crusade_go_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_action_btn(crusade_go_btn, Color(0.75, 0.22, 0.14))
+	BuildingPanelFactoryScript.style_action_btn(crusade_go_btn, Color(0.75, 0.22, 0.14))
 	crusade_go_btn.pressed.connect(_on_crusade_pressed)
 	body.add_child(crusade_go_btn)
 
@@ -1906,7 +1777,7 @@ func _build_garrison_panel(ui: CanvasLayer):
 	var send_btn := Button.new()
 	send_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	send_btn.text = "March →"
-	_style_action_btn(send_btn, Color(0.75, 0.22, 0.14))
+	BuildingPanelFactoryScript.style_action_btn(send_btn, Color(0.75, 0.22, 0.14))
 	send_btn.pressed.connect(_on_crusade_confirm_pressed)
 	crusade_selector_row.add_child(send_btn)
 
@@ -1917,7 +1788,7 @@ func _build_garrison_panel(ui: CanvasLayer):
 	crusade_bring_marcus_btn.toggle_mode = true
 	crusade_bring_marcus_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	crusade_bring_marcus_btn.visible = false
-	_style_action_btn(crusade_bring_marcus_btn, Color(0.80, 0.55, 0.10))
+	BuildingPanelFactoryScript.style_action_btn(crusade_bring_marcus_btn, Color(0.80, 0.55, 0.10))
 	crusade_selector_row.get_parent().add_child(crusade_bring_marcus_btn)   # sibling of selector_row, inside body
 
 	# ── Progress area (hidden until mission started) ──
@@ -1952,18 +1823,18 @@ func _build_garrison_panel(ui: CanvasLayer):
 	crusade_rush_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	crusade_rush_btn.text = "⚡ Rush  (1 Faith = -10 min)"
 	crusade_rush_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_action_btn(crusade_rush_btn, Color(0.72, 0.55, 1.00))
+	BuildingPanelFactoryScript.style_action_btn(crusade_rush_btn, Color(0.72, 0.55, 1.00))
 	crusade_rush_btn.pressed.connect(_on_crusade_rush_pressed)
 	crusade_progress_container.add_child(crusade_rush_btn)
 
-	_panel_sep(body, Color(0.75, 0.22, 0.14))
+	BuildingPanelFactoryScript.panel_sep(body, Color(0.75, 0.22, 0.14))
 
 	var upg := Button.new()
 	upg.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	upg.text = "⬆  Upgrade Building   (Coming Soon)"
 	upg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	upg.disabled = true
-	_style_action_btn(upg, Color(0.50, 0.48, 0.44))
+	BuildingPanelFactoryScript.style_action_btn(upg, Color(0.50, 0.48, 0.44))
 	body.add_child(upg)
 
 
