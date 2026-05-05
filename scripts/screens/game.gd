@@ -5,6 +5,7 @@ const WheelOfFaithScript: GDScript = preload("res://scripts/systems/wheel_of_fai
 const CrusadeRewardsScript: GDScript = preload("res://scripts/systems/crusade_rewards.gd")
 const RoadTilesScript: GDScript = preload("res://scripts/systems/road_tiles.gd")
 const RoadPlacementControllerScript: GDScript = preload("res://scripts/systems/road_placement_controller.gd")
+const CameraControllerScript: GDScript = preload("res://scripts/systems/camera_controller.gd")
 const TutorialCopyScript: GDScript = preload("res://scripts/ui/tutorial/tutorial_copy.gd")
 const BuildingPanelFactoryScript: GDScript = preload("res://scripts/ui/building_panel_factory.gd")
 const WHEEL_POPUP_SCENE := preload("res://scenes/ui/wheel_of_faith_popup.tscn")
@@ -217,6 +218,7 @@ var road_ghost_sprite: Sprite2D = null
 var road_rotate_btn:   Button   = null
 var placed_road_tiles: Array = []
 var road_controller: RoadPlacementController = null
+var camera_controller: CameraController = null
 
 # Active construction (one at a time)
 var active_construction_node: StaticBody2D = null
@@ -403,6 +405,9 @@ func _build_world():
 	camera.limit_right  = int(MAP_WIDTH)
 	camera.limit_bottom = int(MAP_HEIGHT)
 	add_child(camera)
+
+	camera_controller = CameraControllerScript.new()
+	camera_controller.setup(camera)
 
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 42
@@ -2813,24 +2818,16 @@ func _reset_training_ui():
 
 # ── Placement input + map panning ────────────────────────────────────────────
 func _zoom_camera(screen_pivot: Vector2, direction: int):
-	var old_zoom := camera.zoom.x
-	var new_zoom: float = clampf(
-		old_zoom * (ZOOM_FACTOR if direction > 0 else 1.0 / ZOOM_FACTOR),
-		ZOOM_MIN, ZOOM_MAX)
-	if is_equal_approx(new_zoom, old_zoom):
+	if camera_controller == null:
 		return
-	# Keep the world point under the cursor fixed while zooming
-	var vp_center  := get_viewport().get_visible_rect().size * 0.5
-	var world_pivot := camera.position + (screen_pivot - vp_center) / old_zoom
-	camera.zoom     = Vector2(new_zoom, new_zoom)
-	camera.position = world_pivot - (screen_pivot - vp_center) / new_zoom
+	camera_controller.zoom(screen_pivot, get_viewport().get_visible_rect().size, direction)
 
 
 # Use _input (not _unhandled_input) so Control nodes eating mouse events don't block us
 func _input(event: InputEvent):
 	# Map panning: right-click drag — divide by zoom so pan speed feels consistent
-	if event is InputEventMouseMotion and is_panning:
-		camera.position = pan_start_cam - (event.position - pan_start_mouse) / camera.zoom.x
+	if event is InputEventMouseMotion and camera_controller != null and camera_controller.is_panning:
+		camera_controller.update_pan(event.position)
 		get_viewport().set_input_as_handled()
 		return
 
@@ -2872,11 +2869,11 @@ func _input(event: InputEvent):
 				get_viewport().set_input_as_handled()
 				_cancel_placement()
 			else:
-				is_panning = true
-				pan_start_mouse = mb.position
-				pan_start_cam = camera.position
+				if camera_controller != null:
+					camera_controller.start_pan(mb.position)
 		else:
-			is_panning = false
+			if camera_controller != null:
+				camera_controller.stop_pan()
 		return
 
 	if not placing_building:
