@@ -4,6 +4,7 @@ const BaseCampStateScript: GDScript = preload("res://scripts/state/base_camp_sta
 const WheelOfFaithScript: GDScript = preload("res://scripts/systems/wheel_of_faith.gd")
 const CrusadeRewardsScript: GDScript = preload("res://scripts/systems/crusade_rewards.gd")
 const RoadTilesScript: GDScript = preload("res://scripts/systems/road_tiles.gd")
+const RoadPlacementControllerScript: GDScript = preload("res://scripts/systems/road_placement_controller.gd")
 const TutorialCopyScript: GDScript = preload("res://scripts/ui/tutorial/tutorial_copy.gd")
 const BuildingPanelFactoryScript: GDScript = preload("res://scripts/ui/building_panel_factory.gd")
 const WHEEL_POPUP_SCENE := preload("res://scenes/ui/wheel_of_faith_popup.tscn")
@@ -215,6 +216,7 @@ var road_rotation_deg := 0     # 0 / 90 / 180 / 270
 var road_ghost_sprite: Sprite2D = null
 var road_rotate_btn:   Button   = null
 var placed_road_tiles: Array = []
+var road_controller: RoadPlacementController = null
 
 # Active construction (one at a time)
 var active_construction_node: StaticBody2D = null
@@ -554,7 +556,8 @@ func _build_ui():
 	_build_top_bar(ui)
 	_build_build_button(ui)
 	_build_build_menu(ui)
-	_build_road_rotate_btn(ui)
+	road_controller = RoadPlacementControllerScript.new()
+	road_rotate_btn = road_controller.setup_rotate_button(ui, _on_road_rotate)
 	_build_construction_panel(ui)
 	_build_conversion_panel(ui)
 	_build_training_panel(ui)
@@ -877,66 +880,40 @@ func _build_build_button(ui: CanvasLayer):
 
 # ── Road placement ────────────────────────────────────────────────────────────
 
-func _build_road_rotate_btn(ui: CanvasLayer):
-	road_rotate_btn = Button.new()
-	road_rotate_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	road_rotate_btn.text = "↻  Rotate"
-	road_rotate_btn.add_theme_font_size_override("font_size", 15)
-	road_rotate_btn.add_theme_color_override("font_color", Color(1.0, 0.92, 0.28))
-	road_rotate_btn.anchor_left   = 0.5
-	road_rotate_btn.anchor_right  = 0.5
-	road_rotate_btn.anchor_top    = 1.0
-	road_rotate_btn.anchor_bottom = 1.0
-	road_rotate_btn.offset_left   = -70
-	road_rotate_btn.offset_right  =  70
-	road_rotate_btn.offset_top    = -130
-	road_rotate_btn.offset_bottom = -95
-	road_rotate_btn.visible = false
-	road_rotate_btn.pressed.connect(_on_road_rotate)
-	var s := StyleBoxFlat.new()
-	s.bg_color = Color(0.35, 0.24, 0.06); s.border_color = Color(0.72, 0.54, 0.16)
-	s.set_border_width_all(2); s.set_corner_radius_all(6)
-	s.content_margin_top = 6; s.content_margin_bottom = 6
-	s.content_margin_left = 16; s.content_margin_right = 16
-	road_rotate_btn.add_theme_stylebox_override("normal", s)
-	ui.add_child(road_rotate_btn)
-
 func _on_road_rotate():
-	road_rotation_deg = (road_rotation_deg + 90) % 360
-	if road_ghost_sprite:
-		road_ghost_sprite.rotation_degrees = float(road_rotation_deg)
+	if road_controller != null:
+		road_controller.rotate()
+		road_rotation_deg = road_controller.rotation_deg
+		road_ghost_sprite = road_controller.ghost_sprite
 
 func _start_road_placement(type: String):
 	build_menu.hide_menu()
-	placing_road      = true
-	placing_road_type = type
-	road_rotation_deg = 0
 	var mouse_pos := get_viewport().get_canvas_transform().affine_inverse() \
 		* get_viewport().get_mouse_position()
-	road_ghost_sprite = RoadTilesScript.make_sprite(type, mouse_pos, road_rotation_deg)
-	road_ghost_sprite.modulate = Color(0.60, 1.0, 0.60, 0.55)
-	world.add_child(road_ghost_sprite)
-	if RoadTilesScript.is_rotatable(type):
-		road_rotate_btn.visible = true
+	road_controller.start(type, world, mouse_pos)
+	_sync_road_controller_state()
 
 func _cancel_road_placement():
-	placing_road = false
-	placing_road_type = ""
-	road_rotation_deg = 0
-	if road_ghost_sprite:
-		road_ghost_sprite.queue_free()
-		road_ghost_sprite = null
-	road_rotate_btn.visible = false
+	if road_controller != null:
+		road_controller.cancel()
+	_sync_road_controller_state()
 
 func _place_road_tile(pos: Vector2):
-	var spr: Sprite2D = RoadTilesScript.make_sprite(placing_road_type, pos, road_rotation_deg)
-	world.add_child(spr)
-	world.move_child(spr, 1)   # render below buildings and characters
-	placed_road_tiles.append({
-		"type": placing_road_type,
-		"position": pos,
-		"rotation": road_rotation_deg,
-	})
+	if road_controller == null:
+		return
+	road_controller.place(world, pos)
+	_sync_road_controller_state()
+
+
+
+func _sync_road_controller_state() -> void:
+	if road_controller == null:
+		return
+	placing_road = road_controller.active
+	placing_road_type = road_controller.road_type
+	road_rotation_deg = road_controller.rotation_deg
+	road_ghost_sprite = road_controller.ghost_sprite
+	placed_road_tiles = road_controller.placed_tiles
 
 
 func _build_build_menu(ui: CanvasLayer):
