@@ -3,6 +3,7 @@ extends Node
 const BaseCampStateScript: GDScript = preload("res://scripts/state/base_camp_state.gd")
 const WheelOfFaithScript: GDScript = preload("res://scripts/systems/wheel_of_faith.gd")
 const CrusadeRewardsScript: GDScript = preload("res://scripts/systems/crusade_rewards.gd")
+const RoadTilesScript: GDScript = preload("res://scripts/systems/road_tiles.gd")
 const TutorialCopyScript: GDScript = preload("res://scripts/ui/tutorial/tutorial_copy.gd")
 const BuildingPanelFactoryScript: GDScript = preload("res://scripts/ui/building_panel_factory.gd")
 const WHEEL_POPUP_SCENE := preload("res://scenes/ui/wheel_of_faith_popup.tscn")
@@ -905,36 +906,17 @@ func _on_road_rotate():
 	if road_ghost_sprite:
 		road_ghost_sprite.rotation_degrees = float(road_rotation_deg)
 
-func _road_texture(type: String) -> Texture2D:
-	match type:
-		"road_h":      return load("res://assets/roads/Comp_14- no bg.png")
-		"road_v":      return load("res://assets/roads/Comp_13- no bg.png")
-		"road_corner": return load("res://assets/roads/Comp_12- no bg.png")
-		"road_t":      return load("res://assets/roads/Comp_11- no bg.png")
-	return null
-
-func _apply_road_scale(spr: Sprite2D, type: String):
-	const TEX := 512.0
-	match type:
-		"road_h":      spr.scale = Vector2(200.0 / TEX, 72.0 / TEX)
-		"road_v":      spr.scale = Vector2(72.0 / TEX,  200.0 / TEX)
-		"road_corner": spr.scale = Vector2(138.0 / TEX, 138.0 / TEX)
-		"road_t":      spr.scale = Vector2(196.0 / TEX, 138.0 / TEX)
-	spr.rotation_degrees = float(road_rotation_deg)
-
 func _start_road_placement(type: String):
 	build_menu.hide_menu()
 	placing_road      = true
 	placing_road_type = type
 	road_rotation_deg = 0
-	road_ghost_sprite = Sprite2D.new()
-	road_ghost_sprite.texture = _road_texture(type)
-	_apply_road_scale(road_ghost_sprite, type)
-	road_ghost_sprite.modulate = Color(0.60, 1.0, 0.60, 0.55)
-	road_ghost_sprite.position = get_viewport().get_canvas_transform().affine_inverse() \
+	var mouse_pos := get_viewport().get_canvas_transform().affine_inverse() \
 		* get_viewport().get_mouse_position()
+	road_ghost_sprite = RoadTilesScript.make_sprite(type, mouse_pos, road_rotation_deg)
+	road_ghost_sprite.modulate = Color(0.60, 1.0, 0.60, 0.55)
 	world.add_child(road_ghost_sprite)
-	if type in ["road_corner", "road_t"]:
+	if RoadTilesScript.is_rotatable(type):
 		road_rotate_btn.visible = true
 
 func _cancel_road_placement():
@@ -947,10 +929,7 @@ func _cancel_road_placement():
 	road_rotate_btn.visible = false
 
 func _place_road_tile(pos: Vector2):
-	var spr := Sprite2D.new()
-	spr.texture = _road_texture(placing_road_type)
-	_apply_road_scale(spr, placing_road_type)
-	spr.position = pos
+	var spr := RoadTilesScript.make_sprite(placing_road_type, pos, road_rotation_deg)
 	world.add_child(spr)
 	world.move_child(spr, 1)   # render below buildings and characters
 	placed_road_tiles.append({

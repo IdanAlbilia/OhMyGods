@@ -2,6 +2,7 @@ class_name BaseCampState
 extends RefCounted
 
 const BUILDING_SCRIPT := preload("res://scripts/entities/building.gd")
+const RoadTilesScript: GDScript = preload("res://scripts/systems/road_tiles.gd")
 const BELIEVER_SCENE := preload("res://scenes/believer.tscn")
 const MARCUS_SCENE := preload("res://scenes/entities/marcus_character.tscn")
 
@@ -106,16 +107,12 @@ static func _capture_active_construction(game: Node) -> Dictionary:
 static func _restore_roads(game: Node, roads: Array) -> void:
 	game.placed_road_tiles.clear()
 	for road in roads:
-		var spr := Sprite2D.new()
 		var type := str(road.get("type", ""))
-		spr.texture = game._road_texture(type)
-		game.road_rotation_deg = int(road.get("rotation", 0))
-		game._apply_road_scale(spr, type)
-		spr.position = road.get("position", Vector2.ZERO)
+		var rotation := int(road.get("rotation", 0))
+		var spr := RoadTilesScript.make_sprite(type, road.get("position", Vector2.ZERO), rotation)
 		game.world.add_child(spr)
 		game.world.move_child(spr, 1)
 		game.placed_road_tiles.append(road.duplicate(true))
-	game.road_rotation_deg = 0
 
 static func _restore_buildings(game: Node, state: Dictionary) -> void:
 	var active: Dictionary = state.get("active_construction", {})
