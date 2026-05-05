@@ -1,6 +1,14 @@
 extends Node
 
 const BaseCampStateScript: GDScript = preload("res://scripts/state/base_camp_state.gd")
+const WheelOfFaithScript: GDScript = preload("res://scripts/systems/wheel_of_faith.gd")
+const CrusadeRewardsScript: GDScript = preload("res://scripts/systems/crusade_rewards.gd")
+const TutorialCopyScript: GDScript = preload("res://scripts/ui/tutorial/tutorial_copy.gd")
+const WHEEL_POPUP_SCENE := preload("res://scenes/ui/wheel_of_faith_popup.tscn")
+const CRUSADE_RESULT_POPUP_SCENE := preload("res://scenes/ui/crusade_result_popup.tscn")
+const BUILD_MENU_SCENE := preload("res://scenes/ui/build_menu.tscn")
+const HERO_DECK_PANEL_SCENE := preload("res://scenes/ui/hero_deck_panel.tscn")
+const TEMPLE_PANEL_SCENE := preload("res://scenes/ui/temple_panel.tscn")
 const BUILDING_SCENES := {
 	"shelter": preload("res://scenes/buildings/shelter.tscn"),
 	"temple": preload("res://scenes/buildings/temple.tscn"),
@@ -25,24 +33,8 @@ var wheel_available: bool = true
 var wheel_spinning:  bool = false
 var is_first_spin:   bool = true
 var wheel_daily_timer: float = 0.0
-const WHEEL_DAILY_COOLDOWN := 86400.0
-var wheel_popup: Control = null
-var wheel_spinner: Node2D = null
-var wheel_spin_btn: Button = null
-var wheel_result_label: Label = null
-var wheel_result_panel: PanelContainer = null
+var wheel_popup = null
 var wheel_chip_node: PanelContainer = null
-
-const WHEEL_SEGMENTS := [
-	{"label": "+50 Gold",        "color": Color(0.90, 0.70, 0.10), "type": "gold",     "amount": 50 },
-	{"label": "+20 Faith",       "color": Color(0.35, 0.20, 0.75), "type": "faith",    "amount": 20 },
-	{"label": "+100 Gold",       "color": Color(0.85, 0.45, 0.05), "type": "gold",     "amount": 100},
-	{"label": "Dark Omen\n-20 Gold","color": Color(0.20, 0.10, 0.30),"type": "bad",   "amount": -20},
-	{"label": "+50 Faith",       "color": Color(0.55, 0.18, 0.88), "type": "faith",    "amount": 50 },
-	{"label": "Aldric\nThe Prophet", "color": Color(0.10, 0.45, 0.65), "type": "card", "amount": 0 },
-	{"label": "+200 Gold",       "color": Color(0.95, 0.80, 0.00), "type": "gold",     "amount": 200},
-	{"label": "Blessing\n+100 Faith","color": Color(0.72, 0.28, 0.88),"type": "faith", "amount": 100},
-]
 
 # ── Scene refs ──────────────────────────────────────────────────────────────
 var world: Node2D
@@ -95,7 +87,7 @@ var people_detail_label: Label
 var info_popup: PanelContainer
 var info_popup_label: Label
 var info_popup_timer: float = 0.0
-var build_menu: PanelContainer
+var build_menu = null
 var tutorial_panel: PanelContainer
 var tutorial_label: Label
 var tutorial_next_btn: Button
@@ -117,9 +109,7 @@ var extra_shelter_panel: PanelContainer = null
 var extra_shelter_label: Label = null
 var extra_shelter_buildings: Array = []
 var current_extra_shelter_idx: int = 0
-var temple_panel: PanelContainer
-var temple_praying_label: Label
-var temple_prayer_row: VBoxContainer   # dynamic container; session rows are added/removed here
+var temple_panel = null
 var pray_go_btn: Button
 var pray_selector_row: HBoxContainer
 var pray_selector_label: Label
@@ -190,28 +180,16 @@ var crusade_progress_container: VBoxContainer = null
 var crusade_bar: ColorRect = null
 var crusade_timer_label: Label = null
 var crusade_rush_btn: Button = null
-var crusade_result_popup: Control = null
-var crusade_result_title: Label = null
-var crusade_result_label: Label = null   # soldier casualty line
-var crusade_phase1: Control = null       # chests view
-var crusade_phase2: Control = null       # rewards view
-var crusade_chests_row: HBoxContainer = null
-var crusade_chest_images: Array = []   # TextureRect refs for open animation
-var crusade_rewards_label: Label = null
-var crusade_marcus_container: Control = null
-var crusade_dismiss_btn: Button = null
-var crusade_pending: Dictionary = {}     # stores results between phase1 and phase2
+var crusade_result_popup = null
 
 # ── Hero Cards ────────────────────────────────────────────────────────────────
 var marcus_obtained: bool = false
 var hero_deck_chip: PanelContainer = null
-var hero_deck_panel: PanelContainer = null
+var hero_deck_panel = null
 var campaign_chip: PanelContainer = null
 var return_mission_chip: PanelContainer = null
 var generals_quarters: StaticBody2D = null
 var generals_quarters_built: bool = false
-var generals_quarters_build_row: HBoxContainer = null
-var generals_quarters_sep: Node = null
 var marcus_character_node: CharacterBody2D = null
 var marcus_leading_crusade: bool = false
 var crusade_bring_marcus_btn: Button = null
@@ -220,7 +198,6 @@ var crusade_bring_marcus_btn: Button = null
 var resource_timer    := 0.0
 const RESOURCE_INTERVAL := 3.0
 var highlight_pulse   := 0.0
-var temple_build_indicator: Label = null
 var rush_tutorial_arrow: Label = null
 var shelter_arrow: PanelContainer = null
 var shelter_arrow_label: Label = null
@@ -295,7 +272,7 @@ func _process(delta):
 	# Wheel of Faith daily cooldown
 	if not wheel_available:
 		wheel_daily_timer += delta
-		if wheel_daily_timer >= WHEEL_DAILY_COOLDOWN:
+		if wheel_daily_timer >= WheelOfFaithScript.DAILY_COOLDOWN:
 			wheel_available = true
 			wheel_daily_timer = 0.0
 			if wheel_chip_node != null:
@@ -504,7 +481,7 @@ func _road_corner(from_pos: Vector2, to_pos: Vector2) -> Vector2:
 
 
 func _walk_via_road(node: CharacterBody2D, from_pos: Vector2, to_pos: Vector2, on_arrive: Callable):
-	# Mirror _RoadSegment._ready() exactly so characters follow the visual road
+	# Mirror RoadSegmentDrawer._ready() exactly so characters follow the visual road
 	if to_pos.y < from_pos.y - 20.0:
 		# Destination is above — exit south first, then horizontal, then north (same as visual road)
 		var road_y := from_pos.y + 60.0
@@ -944,13 +921,8 @@ func _apply_road_scale(spr: Sprite2D, type: String):
 		"road_t":      spr.scale = Vector2(196.0 / TEX, 138.0 / TEX)
 	spr.rotation_degrees = float(road_rotation_deg)
 
-func _on_build_road_h():      _start_road_placement("road_h")
-func _on_build_road_v():      _start_road_placement("road_v")
-func _on_build_road_corner(): _start_road_placement("road_corner")
-func _on_build_road_t():      _start_road_placement("road_t")
-
 func _start_road_placement(type: String):
-	build_menu.visible = false
+	build_menu.hide_menu()
 	placing_road      = true
 	placing_road_type = type
 	road_rotation_deg = 0
@@ -988,211 +960,10 @@ func _place_road_tile(pos: Vector2):
 
 
 func _build_build_menu(ui: CanvasLayer):
-	build_menu = PanelContainer.new()
-	build_menu.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	# Top-left anchor — immune to RTL/Hebrew system locale
-	build_menu.anchor_left   = 0.0
-	build_menu.anchor_right  = 0.0
-	build_menu.anchor_top    = 0.0
-	build_menu.anchor_bottom = 0.0
-	build_menu.offset_left   = 8
-	build_menu.offset_right  = 370
-	build_menu.offset_top    = 62
-	build_menu.offset_bottom = 560
-	build_menu.visible = false
-
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.07, 0.05, 0.12, 0.97)
-	panel_style.border_color = Color(0.60, 0.45, 0.10)
-	panel_style.set_border_width_all(2)
-	panel_style.set_corner_radius_all(10)
-	panel_style.content_margin_left   = 0
-	panel_style.content_margin_right  = 0
-	panel_style.content_margin_top    = 0
-	panel_style.content_margin_bottom = 8
-	build_menu.add_theme_stylebox_override("panel", panel_style)
+	build_menu = BUILD_MENU_SCENE.instantiate()
 	ui.add_child(build_menu)
-
-	var outer := VBoxContainer.new()
-	outer.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	outer.add_theme_constant_override("separation", 0)
-	build_menu.add_child(outer)
-
-	# ── Title bar ────────────────────────────────────────────────────────
-	var title_bar := ColorRect.new()
-	title_bar.color = Color(0.50, 0.36, 0.08, 1.0)
-	title_bar.custom_minimum_size = Vector2(0, 40)
-	outer.add_child(title_bar)
-
-	var title_row := HBoxContainer.new()
-	title_row.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	title_row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	title_row.add_theme_constant_override("separation", 0)
-	title_bar.add_child(title_row)
-
-	var title_lbl := Label.new()
-	title_lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	title_lbl.text = "  BUILD"
-	title_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_lbl.add_theme_font_size_override("font_size", 18)
-	title_lbl.add_theme_color_override("font_color", Color(1.0, 0.88, 0.40))
-	title_row.add_child(title_lbl)
-
-	var close_x := Button.new()
-	close_x.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	close_x.text = "✕"
-	close_x.flat = true
-	close_x.custom_minimum_size = Vector2(40, 40)
-	close_x.add_theme_font_size_override("font_size", 18)
-	close_x.add_theme_color_override("font_color", Color(1.0, 0.75, 0.30))
-	close_x.pressed.connect(func(): build_menu.visible = false)
-	title_row.add_child(close_x)
-
-	# ── Scrollable building list ──────────────────────────────────────────
-	var scroll := ScrollContainer.new()
-	scroll.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	outer.add_child(scroll)
-
-	var list := VBoxContainer.new()
-	list.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	list.add_theme_constant_override("separation", 0)
-	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(list)
-
-	# Buildings: name, description, cost, callback, accent colour
-	# Temple first — it's the first thing the tutorial asks you to build
-	var temple_row := _add_build_row(list, "Small Temple",        "Send Believers to pray\nand earn Faith Points",        "30g", _on_build_temple,            Color(0.72, 0.55, 1.00))
-	_add_build_row(list, "Believer Shelter",    "Houses 5 more Believers\n(stackable — build many)",     "40g", _on_build_shelter,          Color(0.85, 0.55, 0.18))
-	_add_build_row(list, "Hall of the Devoted",  "Converts Believers\ninto Preachers (1 hr each)",       "70g", _on_build_hall,              Color(0.40, 0.65, 1.00))
-	_add_build_row(list, "Preacher Shelter",     "Houses Preachers — they\ngenerate +2 Faith/tick each", "50g", _on_build_preacher_shelter,  Color(0.30, 0.82, 0.75))
-	_add_build_row(list, "Barracks",             "Trains Believers into\nSoldiers (30 min each)",        "80g", _on_build_armory,            Color(0.85, 0.28, 0.18))
-	_add_build_row(list, "Garrison",             "Houses Soldiers so\nthey are ready to serve",          "60g", _on_build_garrison,          Color(0.65, 0.18, 0.12))
-	generals_quarters_build_row = _add_build_row(list, "General's Quarters", "Home for Marcus the Iron Fist\n(Military Hero)", "100g", _on_build_generals_quarters, Color(0.80, 0.55, 0.10))
-	generals_quarters_build_row.visible = false   # unlocks when Marcus card is obtained
-	# Hide the separator line that _add_build_row added just before this row
-	generals_quarters_sep = list.get_child(generals_quarters_build_row.get_index() - 1)
-	generals_quarters_sep.visible = false
-	# Decorative buildings
-	_add_build_row(list, "Wishing Well",    "A beautiful well — purely\ndecorative for your village",   "25g", _on_build_well,       Color(0.35, 0.65, 0.90))
-	_add_build_row(list, "Pumpkin Garden",  "A fenced garden — adds\ncharm to your settlement",         "30g", _on_build_garden,     Color(0.55, 0.80, 0.25))
-	_add_build_row(list, "Stone Pool",      "A stone cistern — gives\nyour village a serene look",       "35g", _on_build_stone_pool, Color(0.50, 0.70, 0.85))
-	# Roads
-	_add_build_row(list, "Road — Straight H", "Horizontal dirt path\n(click to lay, right-click to stop)",  "5g", _on_build_road_h,      Color(0.65, 0.50, 0.25))
-	_add_build_row(list, "Road — Straight V", "Vertical dirt path\n(click to lay, right-click to stop)",    "5g", _on_build_road_v,      Color(0.65, 0.50, 0.25))
-	_add_build_row(list, "Road — Corner",     "L-shaped corner\nPress R or Rotate to turn",                 "5g", _on_build_road_corner, Color(0.65, 0.50, 0.25))
-	_add_build_row(list, "Road — T-Junction", "T-shaped junction\nPress R or Rotate to turn",               "5g", _on_build_road_t,      Color(0.65, 0.50, 0.25))
-
-	# Tutorial arrow — points at the temple row, pulses red, hidden once built
-	temple_build_indicator = Label.new()
-	temple_build_indicator.text = "◀ Build first!"
-	temple_build_indicator.add_theme_font_size_override("font_size", 12)
-	temple_build_indicator.add_theme_color_override("font_color", Color(1.0, 0.25, 0.25))
-	temple_build_indicator.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	temple_build_indicator.visible = false
-	temple_row.add_child(temple_build_indicator)
-
-
-func _add_build_row(list: VBoxContainer, bname: String, desc: String, cost: String, callback: Callable, accent: Color) -> HBoxContainer:
-	# Separator line between rows
-	if list.get_child_count() > 0:
-		var sep := ColorRect.new()
-		sep.color = Color(0.55, 0.42, 0.10, 0.35)
-		sep.custom_minimum_size = Vector2(0, 1)
-		list.add_child(sep)
-
-	var row := HBoxContainer.new()
-	row.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	row.custom_minimum_size = Vector2(0, 68)
-	row.add_theme_constant_override("separation", 0)
-	list.add_child(row)
-
-	# Coloured accent strip
-	var strip := ColorRect.new()
-	strip.color = accent
-	strip.custom_minimum_size = Vector2(5, 0)
-	strip.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	row.add_child(strip)
-
-	# Icon dot
-	var dot_wrap := CenterContainer.new()
-	dot_wrap.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	dot_wrap.custom_minimum_size = Vector2(36, 0)
-	row.add_child(dot_wrap)
-	var dot := ColorRect.new()
-	dot.color = accent.lightened(0.15)
-	dot.custom_minimum_size = Vector2(14, 14)
-	dot_wrap.add_child(dot)
-
-	# Name + description
-	var info_vbox := VBoxContainer.new()
-	info_vbox.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	info_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info_vbox.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	info_vbox.add_theme_constant_override("separation", 2)
-	row.add_child(info_vbox)
-
-	var name_lbl := Label.new()
-	name_lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	name_lbl.text = bname
-	name_lbl.add_theme_font_size_override("font_size", 14)
-	name_lbl.add_theme_color_override("font_color", Color(1.0, 0.95, 0.80))
-	info_vbox.add_child(name_lbl)
-
-	var desc_lbl := Label.new()
-	desc_lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	desc_lbl.text = desc
-	desc_lbl.add_theme_font_size_override("font_size", 11)
-	desc_lbl.add_theme_color_override("font_color", Color(0.70, 0.68, 0.65))
-	info_vbox.add_child(desc_lbl)
-
-	# Right side: cost + button
-	var right := VBoxContainer.new()
-	right.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	right.custom_minimum_size = Vector2(72, 0)
-	right.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	right.add_theme_constant_override("separation", 4)
-	row.add_child(right)
-
-	var cost_lbl := Label.new()
-	cost_lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	cost_lbl.text = cost
-	cost_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	cost_lbl.add_theme_font_size_override("font_size", 13)
-	cost_lbl.add_theme_color_override("font_color", Color(1.0, 0.82, 0.15))
-	right.add_child(cost_lbl)
-
-	var btn := Button.new()
-	btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	btn.text = "Build"
-	btn.add_theme_font_size_override("font_size", 13)
-	btn.pressed.connect(callback)
-
-	var btn_style := StyleBoxFlat.new()
-	btn_style.bg_color = accent.darkened(0.30)
-	btn_style.border_color = accent
-	btn_style.set_border_width_all(1)
-	btn_style.set_corner_radius_all(4)
-	btn_style.content_margin_left   = 8
-	btn_style.content_margin_right  = 8
-	btn_style.content_margin_top    = 5
-	btn_style.content_margin_bottom = 5
-	btn.add_theme_stylebox_override("normal", btn_style)
-	var btn_hover := btn_style.duplicate() as StyleBoxFlat
-	btn_hover.bg_color = accent.darkened(0.10)
-	btn.add_theme_stylebox_override("hover", btn_hover)
-	btn.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
-	right.add_child(btn)
-
-	# Small right margin
-	var margin := ColorRect.new()
-	margin.color = Color(0,0,0,0)
-	margin.custom_minimum_size = Vector2(8, 0)
-	row.add_child(margin)
-
-	return row
+	build_menu.build_requested.connect(_on_build_menu_build_requested)
+	build_menu.road_requested.connect(_on_build_menu_road_requested)
 
 
 func _build_conversion_panel(ui: CanvasLayer):
@@ -1955,10 +1726,7 @@ func _start_prayer_session(shelter_idx: int, home_pos: Vector2, wanted: int,
 				b.visible = false
 				b.park()
 	)
-	# Build a session row in the temple panel
-	var row := _make_prayer_session_row(wanted)
-	temple_prayer_row.add_child(row)
-	temple_prayer_row.visible = true
+	var row: VBoxContainer = temple_panel.add_prayer_session_row(wanted)
 	# Create session dict
 	var sess := {
 		"count": wanted, "timer": PRAYER_TIME, "accumulator": 0.0,
@@ -1978,36 +1746,6 @@ func _start_prayer_session(shelter_idx: int, home_pos: Vector2, wanted: int,
 	else:
 		_update_extra_prayer_ui()
 	_refresh_temple_panel()
-
-func _make_prayer_session_row(count: int) -> VBoxContainer:
-	var vb := VBoxContainer.new()
-	vb.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	vb.add_theme_constant_override("separation", 3)
-	vb.name = "session_row"
-	var s_plural := "s" if count > 1 else ""
-	var lbl := Label.new()
-	lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	lbl.text_direction = Control.TEXT_DIRECTION_LTR
-	lbl.text = "%d believer%s praying  (+%d faith/min)" % [count, s_plural, count]
-	lbl.add_theme_font_size_override("font_size", 12)
-	lbl.add_theme_color_override("font_color", Color(0.85, 0.72, 1.00))
-	vb.add_child(lbl)
-	var bar_bg := ColorRect.new()
-	bar_bg.name = "bar_bg"
-	bar_bg.color = Color(0.10, 0.08, 0.18)
-	bar_bg.custom_minimum_size = Vector2(0, 8)
-	bar_bg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vb.add_child(bar_bg)
-	var bar := ColorRect.new()
-	bar.name = "bar"
-	bar.color = Color(0.72, 0.55, 1.00)
-	bar.anchor_top    = 0.0
-	bar.anchor_bottom = 1.0
-	bar.anchor_left   = 0.0
-	bar.anchor_right  = 0.0
-	bar_bg.add_child(bar)
-	return vb
-
 
 func _on_pray_rush_pressed():
 	if faith < 1:
@@ -2075,8 +1813,7 @@ func _complete_prayer_session(idx: int):
 	# Remove this session's temple row
 	if is_instance_valid(sess.row):
 		sess.row.queue_free()
-	if prayer_sessions.size() == 0:
-		temple_prayer_row.visible = false
+	temple_panel.refresh_session_rows()
 	_refresh_temple_panel()
 	# Reset the correct shelter's UI
 	if sess.shelter_idx == 0:
@@ -2113,36 +1850,8 @@ func _update_pray_selector_label():
 
 
 func _build_temple_panel(ui: CanvasLayer):
-	temple_panel = _make_building_panel(ui, Color(0.72, 0.55, 1.00), "Small Temple")
-	var body := _panel_body(temple_panel)
-
-	temple_praying_label = _count_row(body, "Believers praying", Color(0.85, 0.72, 1.00))
-
-	# Dynamic session rows — one sub-VBox added per active prayer session
-	temple_prayer_row = VBoxContainer.new()
-	temple_prayer_row.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	temple_prayer_row.add_theme_constant_override("separation", 6)
-	temple_prayer_row.visible = false
-	body.add_child(temple_prayer_row)
-
-	_panel_sep(body, Color(0.72, 0.55, 1.00))
-
-	var info_lbl := Label.new()
-	info_lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	info_lbl.text = "Send believers to pray\nfrom the Shelter panel."
-	info_lbl.add_theme_font_size_override("font_size", 12)
-	info_lbl.add_theme_color_override("font_color", Color(0.65, 0.63, 0.60))
-	body.add_child(info_lbl)
-
-	_panel_sep(body, Color(0.72, 0.55, 1.00))
-
-	var upg := Button.new()
-	upg.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	upg.text = "⬆  Upgrade Building   (Coming Soon)"
-	upg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	upg.disabled = true
-	_style_action_btn(upg, Color(0.50, 0.48, 0.44))
-	body.add_child(upg)
+	temple_panel = TEMPLE_PANEL_SCENE.instantiate()
+	ui.add_child(temple_panel)
 
 
 func _build_garrison_panel(ui: CanvasLayer):
@@ -2597,7 +2306,7 @@ func _update_tutorial():
 	if tutorial_popup:
 		tutorial_popup.visible = popup_showing
 		if popup_showing and tutorial_popup_text:
-			tutorial_popup_text.text = _tut_speech(tut_step)
+			tutorial_popup_text.text = TutorialCopyScript.speech(tut_step, GameData.leader_name)
 
 	# When PLACE_TEMPLE popup is dismissed, reveal the ghost and activate placement
 	if tut_step == TutStep.PLACE_TEMPLE and tut_popup_dismissed and ghost_node != null:
@@ -2617,8 +2326,8 @@ func _update_tutorial():
 			var chip_pos := wheel_chip_node.global_position
 			wheel_tutorial_arrow.offset_left  = chip_pos.x
 			wheel_tutorial_arrow.offset_right = chip_pos.x + wheel_chip_node.size.x + 20
-	if temple_build_indicator:
-		temple_build_indicator.visible = tut_popup_dismissed and tut_step == TutStep.BUILD_TEMPLE
+	if build_menu != null:
+		build_menu.set_temple_hint_visible(tut_popup_dismissed and tut_step == TutStep.BUILD_TEMPLE)
 
 
 func _on_tutorial_popup_ok():
@@ -2637,33 +2346,6 @@ func _on_tutorial_popup_ok():
 	_update_tutorial()
 
 
-func _tut_speech(step: int) -> String:
-	var n: String = GameData.leader_name
-	match step:
-		TutStep.INTRO:
-			return "Greetings, my lord! I am %s, your faithful guide.\n\nFive believers have pledged their lives to your cause. Together, we shall build an empire worthy of the gods!" % n
-		TutStep.BUILD_TEMPLE:
-			return "Your people are restless — they need a place to worship.\n\nBuild a Temple and they will pray, earning you Faith Points. Open the Build menu to begin!"
-		TutStep.PLACE_TEMPLE:
-			return "Choose the perfect spot!\n\nTap anywhere on the map to place the Temple."
-		TutStep.RUSH_PROMPT:
-			return "Patience is a virtue — but Faith is power!\n\nEach Faith Point shaves 10 minutes off construction. Give that Rush button a tap!"
-		TutStep.TEMPLE_COMPLETE:
-			return "Magnificent! The Temple rises in your name.\n\nYour believers can now gather within its walls and pray."
-		TutStep.TAP_SHELTER:
-			return "Time to put your people to work!\n\nTap the Humble Shelter to send your believers to pray at the Temple."
-		TutStep.TAP_GO_PRAY:
-			return "Tap the Go Pray button, choose how many believers to send, then hit Send to Pray.\n\nThey will return after 30 minutes with faith in their hearts."
-		TutStep.CHOOSE_BELIEVERS:
-			return ""
-		TutStep.COMPLETE:
-			return "You've done it, my lord! Faith fuels everything — rush builds, unlock upgrades, and grow your empire.\n\nThe divine path lies open before you."
-		TutStep.WHEEL_HINT:
-			return "One final gift before you go!\n\nThe Grand Priestess has prepared a divine miracle. Tap the Spin chip to claim your first blessing."
-		_:
-			return ""
-
-
 func _pulse_build_button(delta: float):
 	if tut_step == TutStep.BUILD_TEMPLE and tut_popup_dismissed:
 		highlight_pulse += delta * 3.0
@@ -2675,9 +2357,9 @@ func _pulse_build_button(delta: float):
 			rush_tutorial_arrow.add_theme_color_override("font_color",
 				Color(1.0, lerp(0.20, 0.45, t2), lerp(0.20, 0.45, t2)))
 		# Pulse the temple indicator arrow between bright red and dim red
-		if temple_build_indicator and temple_build_indicator.visible:
+		if build_menu != null and build_menu.is_temple_hint_visible():
 			var arrow_color := Color(1.0, lerp(0.15, 0.35, t), lerp(0.15, 0.35, t), lerp(0.6, 1.0, t))
-			temple_build_indicator.add_theme_color_override("font_color", arrow_color)
+			build_menu.set_temple_hint_color(arrow_color)
 	elif (tut_step == TutStep.TAP_SHELTER or tut_step == TutStep.TAP_GO_PRAY) and tut_popup_dismissed:
 		highlight_pulse += delta * 3.0
 		# Pulse the shelter / pray arrows
@@ -2707,53 +2389,34 @@ func _on_build_pressed():
 	if placing_building:
 		_cancel_placement()
 		return
-	build_menu.visible = not build_menu.visible
+	build_menu.toggle_menu()
 
 
-func _on_build_shelter():
-	_try_start_placement("shelter", 40)
-
-func _on_build_temple():
-	if temple != null:
-		return
-	_try_start_placement("temple", 30)
-
-func _on_build_hall():
-	if hall_of_devoted != null:
-		return
-	_try_start_placement("hall_of_devoted", 70)
-
-func _on_build_preacher_shelter():
-	if preacher_shelter_building != null:
-		return
-	_try_start_placement("preacher_shelter", 50)
-
-func _on_build_armory():
-	if armory != null:
-		return
-	_try_start_placement("armory", 80)
-
-func _on_build_garrison():
-	if garrison != null:
-		return
-	_try_start_placement("garrison", 60)
-
-func _on_build_generals_quarters():
-	if generals_quarters != null:
-		return
-	if not marcus_obtained:
-		return
-	_try_start_placement("generals_quarters", 100)
+func _on_build_menu_road_requested(type: String) -> void:
+	_start_road_placement(type)
 
 
-func _on_build_well():
-	_try_start_placement("well", 25)
-
-func _on_build_garden():
-	_try_start_placement("garden", 30)
-
-func _on_build_stone_pool():
-	_try_start_placement("stone_pool", 35)
+func _on_build_menu_build_requested(type: String, cost: int) -> void:
+	match type:
+		"temple":
+			if temple != null:
+				return
+		"hall_of_devoted":
+			if hall_of_devoted != null:
+				return
+		"preacher_shelter":
+			if preacher_shelter_building != null:
+				return
+		"armory":
+			if armory != null:
+				return
+		"garrison":
+			if garrison != null:
+				return
+		"generals_quarters":
+			if generals_quarters != null or not marcus_obtained:
+				return
+	_try_start_placement(type, cost)
 
 
 func _try_start_placement(type: String, cost: int):
@@ -2767,7 +2430,7 @@ func _try_start_placement(type: String, cost: int):
 		return
 	gold -= cost
 	placing_cost = cost
-	build_menu.visible = false
+	build_menu.hide_menu()
 	_start_placement(type)
 
 
@@ -2786,8 +2449,8 @@ func _start_placement(type: String):
 	if type == "temple" and tut_step == TutStep.BUILD_TEMPLE:
 		tut_step = TutStep.PLACE_TEMPLE
 		tut_popup_dismissed = false
-		if temple_build_indicator:
-			temple_build_indicator.visible = false
+		if build_menu != null:
+			build_menu.set_temple_hint_visible(false)
 		# Hide ghost until player dismisses the popup
 		ghost_node.visible = false
 		placing_building   = false
@@ -2951,7 +2614,7 @@ func _on_temple_tapped():
 	shelter_panel.visible = false
 	if extra_shelter_panel:
 		extra_shelter_panel.visible = false
-	temple_panel.visible = not temple_panel.visible
+	temple_panel.toggle_panel()
 	if temple_panel.visible:
 		_refresh_temple_panel()
 
@@ -2960,8 +2623,7 @@ func _refresh_temple_panel():
 	var total: int = 0
 	for s in prayer_sessions:
 		total += s.count
-	temple_praying_label.text = "%d / 5" % total
-	temple_prayer_row.visible = prayer_sessions.size() > 0
+	temple_panel.set_praying_count(total)
 
 
 func _on_hall_tapped():
@@ -3428,143 +3090,14 @@ func _on_wheel_chip_input(event: InputEvent):
 		tut_step = TutStep.DONE
 		_update_tutorial()
 	if wheel_popup != null:
-		wheel_popup.visible = true
+		wheel_popup.open(wheel_available)
 
 
 func _build_wheel_popup(ui: CanvasLayer):
-	# Dark overlay
-	var overlay := ColorRect.new()
-	overlay.color    = Color(0, 0, 0, 0.72)
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	ui.add_child(overlay)
-
-	# Main panel
-	var panel := PanelContainer.new()
-	panel.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	var pstyle := StyleBoxFlat.new()
-	pstyle.bg_color       = Color(0.08, 0.05, 0.15)
-	pstyle.border_color   = Color(0.80, 0.62, 0.10)
-	pstyle.set_border_width_all(3)
-	pstyle.set_corner_radius_all(16)
-	pstyle.content_margin_left   = 18
-	pstyle.content_margin_right  = 18
-	pstyle.content_margin_top    = 16
-	pstyle.content_margin_bottom = 16
-	panel.add_theme_stylebox_override("panel", pstyle)
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.offset_left   = -420
-	panel.offset_right  =  420
-	panel.offset_top    = -300
-	panel.offset_bottom =  300
-	overlay.add_child(panel)
-
-	var hbox := HBoxContainer.new()
-	hbox.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	hbox.add_theme_constant_override("separation", 20)
-	panel.add_child(hbox)
-
-	# ── Left: Grand Priestess ──
-	var left := VBoxContainer.new()
-	left.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	left.custom_minimum_size = Vector2(200, 0)
-	left.alignment = BoxContainer.ALIGNMENT_CENTER
-	hbox.add_child(left)
-
-	var priestess_img := TextureRect.new()
-	priestess_img.texture = load("res://assets/characters/leaders/grand_priestess.jpg")
-	priestess_img.custom_minimum_size = Vector2(200, 360)
-	priestess_img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	priestess_img.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-	left.add_child(priestess_img)
-
-	var quote_lbl := Label.new()
-	quote_lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	quote_lbl.text = "\"The divine favours\nthe faithful...\""
-	quote_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	quote_lbl.add_theme_font_size_override("font_size", 11)
-	quote_lbl.add_theme_color_override("font_color", Color(0.75, 0.65, 0.90))
-	left.add_child(quote_lbl)
-
-	# ── Right: Wheel + button ──
-	var right := VBoxContainer.new()
-	right.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	right.alignment = BoxContainer.ALIGNMENT_CENTER
-	right.add_theme_constant_override("separation", 12)
-	hbox.add_child(right)
-
-	var title_lbl := Label.new()
-	title_lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	title_lbl.text = "✦  Wheel of Faith  ✦"
-	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_lbl.add_theme_font_size_override("font_size", 18)
-	title_lbl.add_theme_color_override("font_color", Color(0.96, 0.84, 0.28))
-	right.add_child(title_lbl)
-
-	# Wheel container with pointer
-	var wheel_area := Control.new()
-	wheel_area.custom_minimum_size = Vector2(380, 390)
-	right.add_child(wheel_area)
-
-	# The spinning wheel node
-	wheel_spinner = Node2D.new()
-	var ws := _WheelSpinner.new()
-	wheel_spinner.add_child(ws)
-	wheel_spinner.position = Vector2(190, 205)
-	wheel_area.add_child(wheel_spinner)
-
-	# Pointer triangle at top of wheel
-	var pointer := _PointerDrawer.new()
-	pointer.position = Vector2(190, 38)
-	wheel_area.add_child(pointer)
-
-	# Result panel (hidden until spin completes)
-	wheel_result_panel = PanelContainer.new()
-	wheel_result_panel.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	var rpstyle := StyleBoxFlat.new()
-	rpstyle.bg_color     = Color(0.12, 0.08, 0.22)
-	rpstyle.border_color = Color(0.80, 0.62, 0.10)
-	rpstyle.set_border_width_all(2)
-	rpstyle.set_corner_radius_all(8)
-	wheel_result_panel.add_theme_stylebox_override("panel", rpstyle)
-	wheel_result_panel.visible = false
-	right.add_child(wheel_result_panel)
-
-	wheel_result_label = Label.new()
-	wheel_result_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	wheel_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	wheel_result_label.add_theme_font_size_override("font_size", 15)
-	wheel_result_label.add_theme_color_override("font_color", Color(0.96, 0.88, 0.30))
-	wheel_result_panel.add_child(wheel_result_label)
-
-	# Spin button
-	wheel_spin_btn = Button.new()
-	wheel_spin_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	wheel_spin_btn.text = "✦  Spin the Wheel  ✦"
-	wheel_spin_btn.add_theme_font_size_override("font_size", 15)
-	var bstyle := StyleBoxFlat.new()
-	bstyle.bg_color     = Color(0.65, 0.45, 0.05)
-	bstyle.border_color = Color(0.95, 0.80, 0.15)
-	bstyle.set_border_width_all(2)
-	bstyle.set_corner_radius_all(8)
-	bstyle.content_margin_top    = 8
-	bstyle.content_margin_bottom = 8
-	wheel_spin_btn.add_theme_stylebox_override("normal", bstyle)
-	wheel_spin_btn.add_theme_color_override("font_color", Color(0.98, 0.92, 0.40))
-	wheel_spin_btn.pressed.connect(_on_spin_pressed)
-	right.add_child(wheel_spin_btn)
-
-	# Close button
-	var close_btn := Button.new()
-	close_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	close_btn.text = "Close"
-	close_btn.add_theme_font_size_override("font_size", 13)
-	close_btn.add_theme_color_override("font_color", Color(0.70, 0.65, 0.80))
-	close_btn.pressed.connect(func(): overlay.visible = false)
-	right.add_child(close_btn)
-
-	overlay.visible = false
-	wheel_popup = overlay
+	wheel_popup = WHEEL_POPUP_SCENE.instantiate()
+	ui.add_child(wheel_popup)
+	wheel_popup.spin_pressed.connect(_on_spin_pressed)
+	wheel_popup.spin_finished.connect(_complete_spin)
 
 
 func _on_spin_pressed():
@@ -3575,50 +3108,21 @@ func _on_spin_pressed():
 	wheel_daily_timer = 0.0
 	if wheel_chip_node != null:
 		wheel_chip_node.visible = false
-	wheel_spin_btn.disabled = true
-	wheel_result_panel.visible = false
 
 	# First spin always lands on +100 Gold (segment 2), after that random
-	var target_seg: int
-	if is_first_spin:
-		target_seg = 2
-		is_first_spin = false
-	else:
-		target_seg = randi() % WHEEL_SEGMENTS.size()
-
-	# Calculate target rotation: spin 5 full turns + land exactly on segment center
-	var seg_angle: float = (TAU / WHEEL_SEGMENTS.size())
-	# Segment 0 starts at -PI/2 (top). To land segment target_seg at top (pointer):
-	var landing_angle: float = -float(target_seg) * seg_angle - seg_angle * 0.5
-	var total_rotation: float = TAU * 5.0 + landing_angle - fmod(wheel_spinner.rotation, TAU)
-
-	var tween := create_tween()
-	tween.tween_property(wheel_spinner, "rotation", wheel_spinner.rotation + total_rotation, 3.5).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.tween_callback(func(): _complete_spin(target_seg))
+	var target_seg: int = WheelOfFaithScript.pick_segment(is_first_spin)
+	is_first_spin = false
+	wheel_popup.start_spin(target_seg)
 
 
 func _complete_spin(seg_index: int):
 	wheel_spinning = false
-	var seg: Dictionary = WHEEL_SEGMENTS[seg_index]
-	match seg["type"]:
-		"gold":
-			gold += int(seg["amount"])
-		"faith":
-			faith += int(seg["amount"])
-		"bad":
-			gold = max(0, gold + int(seg["amount"]))
+	var result: Dictionary = WheelOfFaithScript.apply_reward(seg_index, gold, faith)
+	gold = result.gold
+	faith = result.faith
 	_refresh_resource_labels()
 
-	var result_text: String
-	match seg["type"]:
-		"gold":  result_text = "✦ +%d Gold flows into your treasury!" % int(seg["amount"])
-		"faith": result_text = "✦ +%d Faith bestowed by the heavens!" % int(seg["amount"])
-		"bad":   result_text = "⚠ Dark Omen! %d Gold was taken..." % abs(int(seg["amount"]))
-		"card":  result_text = "✦ Aldric the Prophet answers your call!\n(Leader cards — coming soon)"
-		_:       result_text = "✦ The gods have spoken!"
-
-	wheel_result_label.text = result_text
-	wheel_result_panel.visible = true
+	wheel_popup.show_result(result.text)
 
 
 # ── Resource display ──────────────────────────────────────────────────────────
@@ -3630,227 +3134,6 @@ func _refresh_resource_labels():
 	# Keep people popup fresh while it's open
 	if people_panel != null and people_panel.visible:
 		_refresh_people_panel()
-
-
-
-
-class _RoadSegment extends Node2D:
-	const ROAD_H  := 72.0
-	const TEX_SZ  := 512.0
-	var from_pos: Vector2
-	var to_pos:   Vector2
-
-	func _ready():
-		if to_pos.y < from_pos.y - 20.0:
-			# Destination is above — exit south from door first, then horizontal, then north
-			const EXIT_SOUTH := 60.0
-			var road_y: float = from_pos.y + EXIT_SOUTH
-			var p1 := Vector2(from_pos.x, road_y)
-			var p2 := Vector2(to_pos.x,   road_y)
-			_place_seg(from_pos, p1)
-			_place_seg(p1, p2)
-			_place_seg(p2, to_pos)
-		else:
-			# Destination is at same level or below — simple vertical-first L
-			var corner := Vector2(from_pos.x, to_pos.y)
-			_place_seg(from_pos, corner)
-			_place_seg(corner, to_pos)
-
-	func _place_seg(a: Vector2, b: Vector2):
-		if a.distance_to(b) < 4.0:
-			return
-		var dir: Vector2 = (b - a).normalized()
-		var ext: float = ROAD_H * 0.5
-		var a2: Vector2 = a - dir * ext
-		var b2: Vector2 = b + dir * ext
-		var length: float = a2.distance_to(b2)
-		var horizontal: bool = abs(b.x - a.x) > abs(b.y - a.y)
-		var tex: Texture2D = load("res://assets/roads/Comp14.png" if horizontal else "res://assets/roads/Comp13.png")
-		var spr := Sprite2D.new()
-		spr.texture = tex
-		if horizontal:
-			spr.scale = Vector2(length / TEX_SZ, ROAD_H / TEX_SZ)
-		else:
-			spr.scale = Vector2(ROAD_H / TEX_SZ, length / TEX_SZ)
-		spr.position = (a2 + b2) * 0.5
-		add_child(spr)
-
-
-
-class _WheelSpinner extends Node2D:
-	const TWO_PI := PI * 2.0
-	const SEG_COLORS := [
-		Color(0.88, 0.62, 0.08), Color(0.28, 0.14, 0.72),
-		Color(0.82, 0.38, 0.04), Color(0.16, 0.08, 0.28),
-		Color(0.50, 0.14, 0.86), Color(0.06, 0.38, 0.60),
-		Color(0.95, 0.78, 0.00), Color(0.68, 0.22, 0.85),
-	]
-	const SEG_LABELS := [
-		"+50 Gold", "+20 Faith", "+100 Gold", "Dark Omen",
-		"+50 Faith", "Aldric", "+200 Gold", "+100 Faith",
-	]
-	const RADIUS := 155.0
-	const N      := 8
-	const STEPS  := 32
-
-	func _draw():
-		var font:      Font  = ThemeDB.fallback_font
-		var seg_angle: float = TWO_PI / float(N)
-
-		# ── Drop shadow ──────────────────────────────────────────────────────
-		draw_circle(Vector2(5, 5), RADIUS + 14, Color(0, 0, 0, 0.35))
-
-		# ── Outer decorative ring ─────────────────────────────────────────────
-		draw_circle(Vector2.ZERO, RADIUS + 12, Color(0.92, 0.74, 0.12))
-		draw_circle(Vector2.ZERO, RADIUS +  7, Color(0.55, 0.36, 0.04))
-		draw_circle(Vector2.ZERO, RADIUS +  4, Color(0.80, 0.60, 0.08))
-
-		# ── Coloured segments ─────────────────────────────────────────────────
-		for i in range(N):
-			var a_start: float = float(i) * seg_angle - PI * 0.5
-			var a_end:   float = a_start + seg_angle
-
-			var pts := PackedVector2Array()
-			pts.append(Vector2.ZERO)
-			for s in range(STEPS + 1):
-				var a: float = a_start + (a_end - a_start) * float(s) / float(STEPS)
-				pts.append(Vector2(cos(a), sin(a)) * RADIUS)
-			draw_colored_polygon(pts, SEG_COLORS[i])
-
-			# Lighter arc highlight along outer edge
-			var arc_pts := PackedVector2Array()
-			for s in range(STEPS + 1):
-				var a: float = a_start + (a_end - a_start) * float(s) / float(STEPS)
-				arc_pts.append(Vector2(cos(a), sin(a)) * (RADIUS - 2.0))
-			draw_polyline(arc_pts, SEG_COLORS[i].lightened(0.35), 4.0)
-
-		# ── Gold divider lines between segments ───────────────────────────────
-		for i in range(N):
-			var a: float = float(i) * seg_angle - PI * 0.5
-			draw_line(Vector2.ZERO,
-				Vector2(cos(a), sin(a)) * (RADIUS + 4),
-				Color(0.85, 0.65, 0.08), 2.5)
-
-		# ── Rotated labels ────────────────────────────────────────────────────
-		for i in range(N):
-			var mid_angle: float = float(i) * seg_angle - PI * 0.5 + seg_angle * 0.5
-			# Rotate context to align text along segment direction
-			draw_set_transform(Vector2.ZERO, mid_angle, Vector2.ONE)
-			var txt: String = SEG_LABELS[i]
-			var font_size:  int = 12
-			# Shadow
-			draw_string(font, Vector2(RADIUS * 0.38, 5), txt,
-				HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(0, 0, 0, 0.6))
-			# Main text
-			draw_string(font, Vector2(RADIUS * 0.38, 4), txt,
-				HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(1.0, 0.97, 0.85))
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-
-		# ── Hub ───────────────────────────────────────────────────────────────
-		draw_circle(Vector2.ZERO, 26, Color(0.92, 0.74, 0.12))
-		draw_circle(Vector2.ZERO, 20, Color(0.18, 0.10, 0.30))
-		draw_circle(Vector2.ZERO, 12, Color(0.88, 0.70, 0.10))
-		draw_circle(Vector2.ZERO,  6, Color(0.98, 0.92, 0.55))
-
-
-class _PointerDrawer extends Node2D:
-	func _draw():
-		# Shadow
-		draw_colored_polygon(PackedVector2Array([
-			Vector2(-13, -5), Vector2(13, -5), Vector2(2, 30)
-		]), Color(0, 0, 0, 0.35))
-		# Body
-		draw_colored_polygon(PackedVector2Array([
-			Vector2(-12, -8), Vector2(12, -8), Vector2(0, 28)
-		]), Color(0.95, 0.18, 0.12))
-		# Highlight
-		draw_colored_polygon(PackedVector2Array([
-			Vector2(-5, -7), Vector2(2, -7), Vector2(-3, 10)
-		]), Color(1.0, 0.55, 0.50, 0.55))
-		# Outline
-		draw_polyline(PackedVector2Array([
-			Vector2(-12, -8), Vector2(12, -8), Vector2(0, 28), Vector2(-12, -8)
-		]), Color(0.55, 0.05, 0.02), 1.5)
-
-
-class _PriestessDrawer extends Node2D:
-	func _draw():
-		# Aura glow
-		for r in [80, 65, 50]:
-			draw_circle(Vector2(0, -90), float(r), Color(0.55, 0.35, 0.80, 0.06))
-
-		# Throne back
-		draw_rect(Rect2(-52, -155, 104, 180), Color(0.18, 0.12, 0.28))
-		draw_rect(Rect2(-46, -148, 92, 168), Color(0.25, 0.16, 0.38))
-		# Throne armrests
-		draw_rect(Rect2(-58, -60, 20, 12), Color(0.30, 0.20, 0.45))
-		draw_rect(Rect2( 38, -60, 20, 12), Color(0.30, 0.20, 0.45))
-
-		# Robe (long white flowing)
-		var robe_pts := PackedVector2Array([
-			Vector2(-38, -20), Vector2(38, -20),
-			Vector2(52, 130),  Vector2(-52, 130)
-		])
-		draw_colored_polygon(robe_pts, Color(0.88, 0.86, 0.92))
-		# Robe shading fold lines
-		for x in [-12.0, 0.0, 12.0]:
-			draw_line(Vector2(x, -10), Vector2(x + 8, 125), Color(0.72, 0.70, 0.80, 0.50), 1.5)
-
-		# Body / torso
-		draw_rect(Rect2(-22, -90, 44, 72), Color(0.82, 0.80, 0.88))
-		# Collar / neckline detail
-		draw_rect(Rect2(-18, -90, 36, 8), Color(0.65, 0.55, 0.78))
-
-		# Arms
-		draw_rect(Rect2(-42, -78, 20, 50), Color(0.80, 0.78, 0.86))
-		draw_rect(Rect2( 22, -78, 20, 50), Color(0.80, 0.78, 0.86))
-		# Hands resting on armrests
-		draw_circle(Vector2(-35, -28), 8, Color(0.85, 0.72, 0.62))
-		draw_circle(Vector2( 35, -28), 8, Color(0.85, 0.72, 0.62))
-
-		# Head
-		draw_circle(Vector2(0, -112), 28, Color(0.88, 0.76, 0.66))
-
-		# Hair (long white/silver)
-		var hair_l := PackedVector2Array([
-			Vector2(-12, -138), Vector2(-28, -112),
-			Vector2(-32, -60), Vector2(-22, -18)
-		])
-		draw_polyline(hair_l, Color(0.90, 0.90, 0.95), 10)
-		var hair_r := PackedVector2Array([
-			Vector2(12, -138), Vector2(28, -112),
-			Vector2(32, -60), Vector2(22, -18)
-		])
-		draw_polyline(hair_r, Color(0.90, 0.90, 0.95), 10)
-
-		# Crown base
-		draw_rect(Rect2(-22, -148, 44, 12), Color(0.80, 0.62, 0.10))
-		# Crown spikes
-		for cx in [-14.0, 0.0, 14.0]:
-			var spike := PackedVector2Array([
-				Vector2(cx - 6, -148), Vector2(cx + 6, -148), Vector2(cx, -168)
-			])
-			draw_colored_polygon(spike, Color(0.90, 0.72, 0.12))
-
-		# Crescent moon on crown
-		draw_circle(Vector2(0, -178), 10, Color(0.92, 0.88, 0.60))
-		draw_circle(Vector2(5, -176),  8, Color(0.18, 0.12, 0.28))
-
-		# Eyes
-		draw_circle(Vector2(-10, -114), 4, Color(0.15, 0.10, 0.22))
-		draw_circle(Vector2( 10, -114), 4, Color(0.15, 0.10, 0.22))
-		draw_circle(Vector2(-9,  -115), 2, Color(0.85, 0.75, 0.95))
-		draw_circle(Vector2( 11, -115), 2, Color(0.85, 0.75, 0.95))
-
-		# Mystical orb in right hand
-		draw_circle(Vector2(35, -42), 12, Color(0.45, 0.25, 0.80, 0.70))
-		draw_circle(Vector2(35, -42),  8, Color(0.65, 0.45, 0.95))
-		draw_circle(Vector2(32, -45),  3, Color(0.90, 0.85, 1.00, 0.80))
-
-		# Stars floating around
-		for sp in [Vector2(-65, -130), Vector2(68, -100), Vector2(-70, -60), Vector2(72, -150)]:
-			draw_circle(sp, 3, Color(0.95, 0.90, 0.55, 0.85))
-			draw_circle(sp, 1, Color(1.0, 1.0, 0.9))
 
 # ── Crusade functions ─────────────────────────────────────────────────────────
 
@@ -3930,12 +3213,13 @@ func _complete_crusade():
 	crusading = false
 	crusade_progress_container.visible = false
 	crusade_go_btn.visible = true
+	var led_by_marcus: bool = marcus_leading_crusade
 
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 
 	# Marcus bonus: lower death rate + better boxes
-	var death_rate := 0.05 if marcus_leading_crusade else 0.15
+	var death_rate := 0.05 if led_by_marcus else 0.15
 
 	# Soldier casualties
 	var survivors: int = 0
@@ -3964,10 +3248,10 @@ func _complete_crusade():
 	var got_marcus: bool = false
 
 	for i in range(crusade_sent):
-		var box: Dictionary = _roll_box(rng)
+		var box: Dictionary = CrusadeRewardsScript.roll_box(rng)
 		# Marcus leadership bonus: upgrade each box one rarity tier
-		if marcus_leading_crusade:
-			box = _upgrade_box_rarity(box, rng)
+		if led_by_marcus:
+			box = CrusadeRewardsScript.upgrade_box_rarity(box, rng)
 		boxes.append(box)
 		total_gold  += box.gold
 		total_faith += box.faith
@@ -3978,419 +3262,52 @@ func _complete_crusade():
 		marcus_obtained = true
 
 	# Return Marcus to his quarters
-	if marcus_leading_crusade:
+	if led_by_marcus:
 		marcus_leading_crusade = false
 		if is_instance_valid(marcus_character_node) and generals_quarters != null:
 			marcus_character_node.visible = true
 			marcus_character_node.start_wandering(generals_quarters.position + Vector2(0, 20))
 
-	# Store results for phase 2 (opened after player taps chests)
-	crusade_pending = {
+	crusade_result_popup.open_result({
+		"title": "Marcus Leads a Victory!" if led_by_marcus else "The Crusade Returns!",
 		"fallen": fallen,
 		"gold": total_gold,
 		"faith": total_faith,
 		"got_marcus": got_marcus,
 		"boxes": boxes
-	}
-
-	# Populate chest boxes in phase 1
-	for child in crusade_chests_row.get_children():
-		child.queue_free()
-	crusade_chest_images.clear()
-	var display_boxes: Array = boxes
-	for box_data in display_boxes:
-		_add_chest_box(crusade_chests_row, box_data.rarity)
-
-	# Soldier info label
-	if fallen > 0:
-		var sf := "s" if fallen != 1 else ""
-		crusade_result_label.text = "%d soldier%s fell in battle." % [fallen, sf]
-	else:
-		crusade_result_label.text = "All soldiers returned safely!"
-
-	crusade_result_title.text = "The Crusade Returns!" if not marcus_leading_crusade else "Marcus Leads a Victory!"
-	crusade_phase1.visible = true
-	crusade_phase2.visible = false
-	crusade_result_popup.visible = true
+	})
 
 
-func _roll_box(rng: RandomNumberGenerator) -> Dictionary:
-	var roll: float = rng.randf()
-	var rarity: String
-	if roll < 0.01:
-		rarity = "Legendary"
-	elif roll < 0.07:
-		rarity = "Epic"
-	elif roll < 0.20:
-		rarity = "Rare"
-	elif roll < 0.45:
-		rarity = "Uncommon"
-	else:
-		rarity = "Common"
+func _on_crusade_rewards_revealed(reward_gold: int, reward_faith: int, _got_marcus: bool) -> void:
+	gold += reward_gold
+	faith += reward_faith
+	_refresh_resource_labels()
 
-	var gold_reward: int
-	var faith_reward: int
-	var hero_chance: float
-
-	match rarity:
-		"Common":
-			gold_reward  = rng.randi_range(50,  100)
-			faith_reward = rng.randi_range(5,   10)
-			hero_chance  = 0.02
-		"Uncommon":
-			gold_reward  = rng.randi_range(100, 200)
-			faith_reward = rng.randi_range(10,  20)
-			hero_chance  = 0.05
-		"Rare":
-			gold_reward  = rng.randi_range(200, 400)
-			faith_reward = rng.randi_range(20,  40)
-			hero_chance  = 0.10
-		"Epic":
-			gold_reward  = rng.randi_range(400, 800)
-			faith_reward = rng.randi_range(40,  80)
-			hero_chance  = 0.20
-		"Legendary":
-			gold_reward  = rng.randi_range(800, 1500)
-			faith_reward = rng.randi_range(80,  150)
-			hero_chance  = 0.50
-		_:
-			gold_reward  = 50
-			faith_reward = 5
-			hero_chance  = 0.02
-
-	return {"rarity": rarity, "gold": gold_reward, "faith": faith_reward, "hero_chance": hero_chance}
-
-
-func _upgrade_box_rarity(box: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
-	# Marcus leadership bonus: upgrade rarity one tier, boost rewards accordingly
-	const TIERS := ["Common", "Uncommon", "Rare", "Epic", "Legendary"]
-	var idx: int = TIERS.find(box.rarity)
-	if idx < 0 or idx >= TIERS.size() - 1:
-		return box   # already Legendary, no change
-	var new_rarity: String = TIERS[idx + 1]
-	# Re-roll rewards at the higher tier
-	var upgraded: Dictionary = _roll_box(rng)
-	upgraded["rarity"] = new_rarity
-	# Keep at least the original gold/faith as a floor
-	upgraded["gold"]  = maxi(upgraded.gold,  box.gold)
-	upgraded["faith"] = maxi(upgraded.faith, box.faith)
-	return upgraded
-
-
-func _rarity_color(rarity: String) -> Color:
-	match rarity:
-		"Common":    return Color(0.55, 0.55, 0.55)
-		"Uncommon":  return Color(0.20, 0.75, 0.20)
-		"Rare":      return Color(0.25, 0.50, 1.00)
-		"Epic":      return Color(0.65, 0.20, 0.90)
-		"Legendary": return Color(0.95, 0.65, 0.05)
-	return Color(0.55, 0.55, 0.55)
-
-
-func _add_chest_box(row: HBoxContainer, rarity: String):
-	var col := _rarity_color(rarity)
-
-	var inner := VBoxContainer.new()
-	inner.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	inner.add_theme_constant_override("separation", 4)
-	inner.alignment = BoxContainer.ALIGNMENT_CENTER
-	inner.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	row.add_child(inner)
-
-	# Chest image
-	var chest_tex: Texture2D = load("res://assets/ui/Treasure box.png")
-	var img := TextureRect.new()
-	img.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	img.texture = chest_tex
-	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	img.custom_minimum_size = Vector2(220, 220)
-	img.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	img.modulate = col.lightened(0.15) if rarity != "Common" else Color.WHITE
-	inner.add_child(img)
-	crusade_chest_images.append(img)
-
-	var rar_lbl := Label.new()
-	rar_lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	rar_lbl.text = rarity
-	rar_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	rar_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rar_lbl.add_theme_font_size_override("font_size", 14)
-	rar_lbl.add_theme_color_override("font_color", col)
-	inner.add_child(rar_lbl)
-
-
-func _on_open_chests_pressed():
-	var open_tex: Texture2D = load("res://assets/ui/Open Treasure Box.png")
-	var total: int = crusade_chest_images.size()
-
-	# Animate each chest opening one by one with a small bounce
-	for i in total:
-		var img: TextureRect = crusade_chest_images[i]
-		var delay: float = i * 0.18
-		# Scale up (bounce) then swap to open texture
-		var tw: Tween = create_tween()
-		tw.tween_interval(delay)
-		tw.tween_property(img, "scale", Vector2(1.25, 1.25), 0.10)
-		tw.tween_callback(func():
-			img.texture = open_tex
-			img.modulate = Color.WHITE
-		)
-		tw.tween_property(img, "scale", Vector2(1.0, 1.0), 0.12)
-
-	# After all chests have animated, switch to Phase 2
-	var switch_delay: float = total * 0.18 + 0.45
-	var sw: Tween = create_tween()
-	sw.tween_interval(switch_delay)
-	sw.tween_callback(func():
-		var p: Dictionary = crusade_pending
-		var g: int = p.get("gold", 0)
-		var f: int = p.get("faith", 0)
-		var got_marcus: bool = p.get("got_marcus", false)
-
-		gold  += g
-		faith += f
-		_refresh_resource_labels()
-
-		crusade_rewards_label.text = "+%d Gold     +%d Faith" % [g, f]
-		crusade_marcus_container.visible = got_marcus
-
-		crusade_phase1.visible = false
-		crusade_phase2.visible = true
-
-		# Unlock General's Quarters in build menu and show Hero Deck chip
-		if marcus_obtained:
-			if generals_quarters_build_row != null:
-				generals_quarters_build_row.visible = true
-			if generals_quarters_sep != null:
-				generals_quarters_sep.visible = true
-			if hero_deck_chip != null:
-				hero_deck_chip.visible = true
-	)
-
-
-func _on_crusade_dismiss_pressed():
-	crusade_result_popup.visible = false
+	if marcus_obtained:
+		if build_menu != null:
+			build_menu.set_generals_quarters_unlocked(true)
+		if hero_deck_chip != null:
+			hero_deck_chip.visible = true
 
 
 # ── Crusade result popup ───────────────────────────────────────────────────────
 
 func _build_crusade_result_popup(ui: CanvasLayer):
-	var overlay := ColorRect.new()
-	overlay.color = Color(0, 0, 0, 0.70)
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	overlay.visible = false
-	ui.add_child(overlay)
-	crusade_result_popup = overlay
-
-	# CenterContainer auto-centers panel on screen regardless of content size
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_PASS
-	overlay.add_child(center)
-
-	var panel := PanelContainer.new()
-	panel.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	panel.custom_minimum_size = Vector2(360, 0)   # fixed width, height follows content
-	var ps := StyleBoxFlat.new()
-	ps.bg_color = Color(0.10, 0.05, 0.05)
-	ps.border_color = Color(0.75, 0.22, 0.14)
-	ps.set_border_width_all(2)
-	ps.set_corner_radius_all(10)
-	ps.content_margin_left   = 20
-	ps.content_margin_right  = 20
-	ps.content_margin_top    = 16
-	ps.content_margin_bottom = 16
-	panel.add_theme_stylebox_override("panel", ps)
-	center.add_child(panel)
-
-	var vb := VBoxContainer.new()
-	vb.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	vb.add_theme_constant_override("separation", 10)
-	panel.add_child(vb)
-
-	# Title
-	crusade_result_title = Label.new()
-	crusade_result_title.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	crusade_result_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	crusade_result_title.add_theme_font_size_override("font_size", 18)
-	crusade_result_title.add_theme_color_override("font_color", Color(0.95, 0.55, 0.15))
-	vb.add_child(crusade_result_title)
-
-	# Soldier info (shared between phases)
-	crusade_result_label = Label.new()
-	crusade_result_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	crusade_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	crusade_result_label.add_theme_font_size_override("font_size", 13)
-	crusade_result_label.add_theme_color_override("font_color", Color(0.92, 0.90, 0.98))
-	vb.add_child(crusade_result_label)
-
-	# ── PHASE 1: closed chests ────────────────────────────────────────────────
-	crusade_phase1 = VBoxContainer.new()
-	crusade_phase1.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	crusade_phase1.add_theme_constant_override("separation", 10)
-	vb.add_child(crusade_phase1)
-
-	var tap_lbl := Label.new()
-	tap_lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	tap_lbl.text = "Your crusade brought back treasures!"
-	tap_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tap_lbl.add_theme_font_size_override("font_size", 13)
-	tap_lbl.add_theme_color_override("font_color", Color(0.85, 0.82, 0.65))
-	crusade_phase1.add_child(tap_lbl)
-
-	var scroll := ScrollContainer.new()
-	scroll.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.custom_minimum_size = Vector2(0, 260)
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	crusade_phase1.add_child(scroll)
-
-	crusade_chests_row = HBoxContainer.new()
-	crusade_chests_row.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	crusade_chests_row.add_theme_constant_override("separation", 16)
-	crusade_chests_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	crusade_chests_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(crusade_chests_row)
-
-	var open_btn := Button.new()
-	open_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	open_btn.text = "Open Chests!"
-	open_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_action_btn(open_btn, Color(0.75, 0.55, 0.05))
-	open_btn.pressed.connect(_on_open_chests_pressed)
-	crusade_phase1.add_child(open_btn)
-
-	# ── PHASE 2: rewards + Marcus card ───────────────────────────────────────
-	crusade_phase2 = VBoxContainer.new()
-	crusade_phase2.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	crusade_phase2.add_theme_constant_override("separation", 10)
-	crusade_phase2.visible = false
-	vb.add_child(crusade_phase2)
-
-	crusade_rewards_label = Label.new()
-	crusade_rewards_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	crusade_rewards_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	crusade_rewards_label.add_theme_font_size_override("font_size", 16)
-	crusade_rewards_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.25))
-	crusade_phase2.add_child(crusade_rewards_label)
-
-	# Marcus card reveal (hidden until he drops)
-	crusade_marcus_container = VBoxContainer.new()
-	crusade_marcus_container.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	crusade_marcus_container.add_theme_constant_override("separation", 8)
-	crusade_marcus_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	crusade_marcus_container.size_flags_vertical   = Control.SIZE_SHRINK_CENTER
-	crusade_marcus_container.visible = false
-	crusade_phase2.add_child(crusade_marcus_container)
-
-	var hero_lbl := Label.new()
-	hero_lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	hero_lbl.text = "NEW HERO OBTAINED!"
-	hero_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hero_lbl.add_theme_font_size_override("font_size", 15)
-	hero_lbl.add_theme_color_override("font_color", Color(0.98, 0.88, 0.20))
-	crusade_marcus_container.add_child(hero_lbl)
-
-	var marcus_tex: Texture2D = load("res://assets/characters/marcus/Marcus.png")
-	if marcus_tex != null:
-		# EXPAND_IGNORE_SIZE + SIZE_SHRINK_CENTER = locked to custom_minimum_size, never expands
-		var card_img := TextureRect.new()
-		card_img.layout_direction  = Control.LAYOUT_DIRECTION_LTR
-		card_img.texture           = marcus_tex
-		card_img.expand_mode       = TextureRect.EXPAND_IGNORE_SIZE
-		card_img.stretch_mode      = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		card_img.custom_minimum_size   = Vector2(180, 240)
-		card_img.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		card_img.size_flags_vertical   = Control.SIZE_SHRINK_CENTER
-		crusade_marcus_container.add_child(card_img)
-
-	var dismiss_btn := Button.new()
-	dismiss_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	dismiss_btn.text = "For Glory!"
-	dismiss_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_action_btn(dismiss_btn, Color(0.75, 0.22, 0.14))
-	dismiss_btn.pressed.connect(_on_crusade_dismiss_pressed)
-	crusade_phase2.add_child(dismiss_btn)
-	crusade_dismiss_btn = dismiss_btn
+	crusade_result_popup = CRUSADE_RESULT_POPUP_SCENE.instantiate()
+	ui.add_child(crusade_result_popup)
+	crusade_result_popup.rewards_revealed.connect(_on_crusade_rewards_revealed)
 
 
 # ── Hero Deck panel ────────────────────────────────────────────────────────────
 
 func _build_hero_deck_panel(ui: CanvasLayer):
-	hero_deck_panel = PanelContainer.new()
-	hero_deck_panel.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	hero_deck_panel.anchor_left   = 0.0
-	hero_deck_panel.anchor_right  = 0.0
-	hero_deck_panel.anchor_top    = 0.0
-	hero_deck_panel.anchor_bottom = 0.0
-	hero_deck_panel.offset_left   = 8
-	hero_deck_panel.offset_right  = 370
-	hero_deck_panel.offset_top    = 62
-	hero_deck_panel.offset_bottom = 560
-	hero_deck_panel.visible       = false
-	var pstyle := StyleBoxFlat.new()
-	pstyle.bg_color = Color(0.07, 0.05, 0.10, 0.97)
-	pstyle.border_color = Color(0.80, 0.55, 0.10)
-	pstyle.set_border_width_all(2)
-	pstyle.set_corner_radius_all(8)
-	pstyle.content_margin_left   = 12
-	pstyle.content_margin_right  = 12
-	pstyle.content_margin_top    = 10
-	pstyle.content_margin_bottom = 10
-	hero_deck_panel.add_theme_stylebox_override("panel", pstyle)
+	hero_deck_panel = HERO_DECK_PANEL_SCENE.instantiate()
 	ui.add_child(hero_deck_panel)
-
-	var vb := VBoxContainer.new()
-	vb.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	vb.add_theme_constant_override("separation", 10)
-	hero_deck_panel.add_child(vb)
-
-	var title_row := HBoxContainer.new()
-	title_row.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	vb.add_child(title_row)
-
-	var title := Label.new()
-	title.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	title.text = "Hero Deck"
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.add_theme_font_size_override("font_size", 17)
-	title.add_theme_color_override("font_color", Color(0.98, 0.88, 0.30))
-	title_row.add_child(title)
-
-	var close := Button.new()
-	close.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	close.text = "X"
-	close.custom_minimum_size = Vector2(36, 36)
-	close.add_theme_font_size_override("font_size", 16)
-	close.pressed.connect(func(): hero_deck_panel.visible = false)
-	title_row.add_child(close)
-
-	var marcus_tex: Texture2D = load("res://assets/characters/marcus/Marcus.png")
-	if marcus_tex != null:
-		var card_img := TextureRect.new()
-		card_img.layout_direction      = Control.LAYOUT_DIRECTION_LTR
-		card_img.texture               = marcus_tex
-		card_img.expand_mode           = TextureRect.EXPAND_IGNORE_SIZE
-		card_img.stretch_mode          = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		card_img.custom_minimum_size   = Vector2(200, 268)
-		card_img.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		card_img.size_flags_vertical   = Control.SIZE_SHRINK_CENTER
-		vb.add_child(card_img)
-
-	var marcus_desc := Label.new()
-	marcus_desc.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	marcus_desc.text = "Military General  |  Common\nBoosts crusade success in battle."
-	marcus_desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	marcus_desc.add_theme_font_size_override("font_size", 12)
-	marcus_desc.add_theme_color_override("font_color", Color(0.75, 0.70, 0.65))
-	vb.add_child(marcus_desc)
 
 
 func _on_hero_deck_chip_input(event: InputEvent):
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		hero_deck_panel.visible = not hero_deck_panel.visible
+		hero_deck_panel.toggle_panel()
 
 
 func _on_campaign_chip_input(event: InputEvent) -> void:

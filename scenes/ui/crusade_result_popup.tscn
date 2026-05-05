@@ -1,0 +1,169 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/crusade_result_popup.gd" id="1_crusade"]
+[ext_resource type="Texture2D" path="res://assets/characters/marcus/Marcus.png" id="2_marcus"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+content_margin_left = 20.0
+content_margin_top = 16.0
+content_margin_right = 20.0
+content_margin_bottom = 16.0
+bg_color = Color(0.1, 0.05, 0.05, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.75, 0.22, 0.14, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_open"]
+content_margin_top = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.4875, 0.3575, 0.0325, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.75, 0.55, 0.05, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dismiss"]
+content_margin_top = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.4875, 0.143, 0.091, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.75, 0.22, 0.14, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_flat"]
+bg_color = Color(0, 0, 0, 0)
+
+[node name="CrusadeResultPopup" type="ColorRect"]
+color = Color(0, 0, 0, 0.7)
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_crusade")
+
+[node name="Center" type="CenterContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+layout_direction = 2
+custom_minimum_size = Vector2(360, 0)
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Body" type="VBoxContainer" parent="Center/Panel"]
+layout_direction = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="Center/Panel/Body"]
+unique_name_in_owner = true
+layout_direction = 2
+theme_override_colors/font_color = Color(0.95, 0.55, 0.15, 1)
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 1
+
+[node name="CasualtyLabel" type="Label" parent="Center/Panel/Body"]
+unique_name_in_owner = true
+layout_direction = 2
+theme_override_colors/font_color = Color(0.92, 0.9, 0.98, 1)
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+
+[node name="ChestPhase" type="VBoxContainer" parent="Center/Panel/Body"]
+unique_name_in_owner = true
+layout_direction = 2
+theme_override_constants/separation = 10
+
+[node name="TreasureMessage" type="Label" parent="Center/Panel/Body/ChestPhase"]
+layout_direction = 2
+theme_override_colors/font_color = Color(0.85, 0.82, 0.65, 1)
+theme_override_font_sizes/font_size = 13
+text = "Your crusade brought back treasures!"
+horizontal_alignment = 1
+
+[node name="ChestScroll" type="ScrollContainer" parent="Center/Panel/Body/ChestPhase"]
+layout_direction = 2
+custom_minimum_size = Vector2(0, 260)
+size_flags_horizontal = 3
+horizontal_scroll_mode = 1
+vertical_scroll_mode = 0
+
+[node name="ChestsRow" type="HBoxContainer" parent="Center/Panel/Body/ChestPhase/ChestScroll"]
+unique_name_in_owner = true
+layout_direction = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="OpenButton" type="Button" parent="Center/Panel/Body/ChestPhase"]
+unique_name_in_owner = true
+layout_direction = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.98, 0.94, 0.86, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_open")
+theme_override_styles/focus = SubResource("StyleBoxFlat_flat")
+text = "Open Chests!"
+
+[node name="RewardsPhase" type="VBoxContainer" parent="Center/Panel/Body"]
+unique_name_in_owner = true
+visible = false
+layout_direction = 2
+theme_override_constants/separation = 10
+
+[node name="RewardsLabel" type="Label" parent="Center/Panel/Body/RewardsPhase"]
+unique_name_in_owner = true
+layout_direction = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.25, 1)
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+
+[node name="MarcusContainer" type="VBoxContainer" parent="Center/Panel/Body/RewardsPhase"]
+unique_name_in_owner = true
+visible = false
+layout_direction = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/separation = 8
+
+[node name="HeroLabel" type="Label" parent="Center/Panel/Body/RewardsPhase/MarcusContainer"]
+layout_direction = 2
+theme_override_colors/font_color = Color(0.98, 0.88, 0.2, 1)
+theme_override_font_sizes/font_size = 15
+text = "NEW HERO OBTAINED!"
+horizontal_alignment = 1
+
+[node name="MarcusCard" type="TextureRect" parent="Center/Panel/Body/RewardsPhase/MarcusContainer"]
+layout_direction = 2
+custom_minimum_size = Vector2(180, 240)
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture = ExtResource("2_marcus")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DismissButton" type="Button" parent="Center/Panel/Body/RewardsPhase"]
+unique_name_in_owner = true
+layout_direction = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.98, 0.94, 0.86, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_dismiss")
+theme_override_styles/focus = SubResource("StyleBoxFlat_flat")
+text = "For Glory!"

@@ -247,10 +247,8 @@ static func _refresh_ui(game: Node) -> void:
 		game.garrison_soldier_label.text = "%d / 5" % game.soldiers_in_garrison
 	if game.hero_deck_chip != null:
 		game.hero_deck_chip.visible = game.marcus_obtained
-	if game.generals_quarters_build_row != null:
-		game.generals_quarters_build_row.visible = game.marcus_obtained
-	if game.generals_quarters_sep != null:
-		game.generals_quarters_sep.visible = game.marcus_obtained
+	if game.build_menu != null:
+		game.build_menu.set_generals_quarters_unlocked(game.marcus_obtained)
 	if game.wheel_chip_node != null:
 		game.wheel_chip_node.visible = game.wheel_available
 

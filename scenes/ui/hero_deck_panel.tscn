@@ -1,0 +1,69 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/hero_deck_panel.gd" id="1_hero"]
+[ext_resource type="Texture2D" path="res://assets/characters/marcus/Marcus.png" id="2_marcus"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+bg_color = Color(0.07, 0.05, 0.1, 0.97)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.8, 0.55, 0.1, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="HeroDeckPanel" type="PanelContainer"]
+layout_direction = 2
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 8.0
+offset_top = 62.0
+offset_right = 370.0
+offset_bottom = 560.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+script = ExtResource("1_hero")
+
+[node name="Body" type="VBoxContainer" parent="."]
+layout_direction = 2
+theme_override_constants/separation = 10
+
+[node name="TitleRow" type="HBoxContainer" parent="Body"]
+layout_direction = 2
+
+[node name="Title" type="Label" parent="Body/TitleRow"]
+layout_direction = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.98, 0.88, 0.3, 1)
+theme_override_font_sizes/font_size = 17
+text = "Hero Deck"
+
+[node name="CloseButton" type="Button" parent="Body/TitleRow"]
+unique_name_in_owner = true
+layout_direction = 2
+custom_minimum_size = Vector2(36, 36)
+theme_override_font_sizes/font_size = 16
+text = "X"
+
+[node name="MarcusCard" type="TextureRect" parent="Body"]
+layout_direction = 2
+custom_minimum_size = Vector2(200, 268)
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture = ExtResource("2_marcus")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MarcusDescription" type="Label" parent="Body"]
+layout_direction = 2
+theme_override_colors/font_color = Color(0.75, 0.7, 0.65, 1)
+theme_override_font_sizes/font_size = 12
+text = "Military General  |  Common
+Boosts crusade success in battle."
+horizontal_alignment = 1

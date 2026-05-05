@@ -1,0 +1,144 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/wheel_of_faith_popup.gd" id="1_wheel"]
+[ext_resource type="Texture2D" path="res://assets/characters/leaders/grand_priestess.jpg" id="2_priestess"]
+[ext_resource type="Script" path="res://scripts/ui/drawers/wheel_spinner_drawer.gd" id="3_spinner"]
+[ext_resource type="Script" path="res://scripts/ui/drawers/wheel_pointer_drawer.gd" id="4_pointer"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+content_margin_left = 18.0
+content_margin_top = 16.0
+content_margin_right = 18.0
+content_margin_bottom = 16.0
+bg_color = Color(0.08, 0.05, 0.15, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.8, 0.62, 0.1, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_result"]
+bg_color = Color(0.12, 0.08, 0.22, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.8, 0.62, 0.1, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_spin"]
+content_margin_top = 8.0
+content_margin_bottom = 8.0
+bg_color = Color(0.65, 0.45, 0.05, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.95, 0.8, 0.15, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="WheelOfFaithPopup" type="ColorRect"]
+color = Color(0, 0, 0, 0.72)
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_wheel")
+
+[node name="Center" type="CenterContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+layout_direction = 2
+custom_minimum_size = Vector2(840, 600)
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Content" type="HBoxContainer" parent="Center/Panel"]
+layout_direction = 2
+theme_override_constants/separation = 20
+
+[node name="PriestessColumn" type="VBoxContainer" parent="Center/Panel/Content"]
+layout_direction = 2
+custom_minimum_size = Vector2(200, 0)
+alignment = 1
+
+[node name="PriestessImage" type="TextureRect" parent="Center/Panel/Content/PriestessColumn"]
+custom_minimum_size = Vector2(200, 360)
+texture = ExtResource("2_priestess")
+expand_mode = 3
+stretch_mode = 5
+
+[node name="Quote" type="Label" parent="Center/Panel/Content/PriestessColumn"]
+layout_direction = 2
+theme_override_colors/font_color = Color(0.75, 0.65, 0.9, 1)
+theme_override_font_sizes/font_size = 11
+text = "\"The divine favours
+the faithful...\""
+horizontal_alignment = 1
+
+[node name="WheelColumn" type="VBoxContainer" parent="Center/Panel/Content"]
+layout_direction = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="Center/Panel/Content/WheelColumn"]
+layout_direction = 2
+theme_override_colors/font_color = Color(0.96, 0.84, 0.28, 1)
+theme_override_font_sizes/font_size = 18
+text = "Wheel of Faith"
+horizontal_alignment = 1
+
+[node name="WheelArea" type="Control" parent="Center/Panel/Content/WheelColumn"]
+custom_minimum_size = Vector2(380, 390)
+
+[node name="Spinner" type="Node2D" parent="Center/Panel/Content/WheelColumn/WheelArea"]
+unique_name_in_owner = true
+position = Vector2(190, 205)
+
+[node name="WheelDrawer" type="Node2D" parent="Center/Panel/Content/WheelColumn/WheelArea/Spinner"]
+script = ExtResource("3_spinner")
+
+[node name="Pointer" type="Node2D" parent="Center/Panel/Content/WheelColumn/WheelArea"]
+position = Vector2(190, 38)
+script = ExtResource("4_pointer")
+
+[node name="ResultPanel" type="PanelContainer" parent="Center/Panel/Content/WheelColumn"]
+unique_name_in_owner = true
+visible = false
+layout_direction = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_result")
+
+[node name="ResultLabel" type="Label" parent="Center/Panel/Content/WheelColumn/ResultPanel"]
+unique_name_in_owner = true
+layout_direction = 2
+theme_override_colors/font_color = Color(0.96, 0.88, 0.3, 1)
+theme_override_font_sizes/font_size = 15
+horizontal_alignment = 1
+
+[node name="SpinButton" type="Button" parent="Center/Panel/Content/WheelColumn"]
+unique_name_in_owner = true
+layout_direction = 2
+theme_override_colors/font_color = Color(0.98, 0.92, 0.4, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_spin")
+text = "Spin the Wheel"
+
+[node name="CloseButton" type="Button" parent="Center/Panel/Content/WheelColumn"]
+unique_name_in_owner = true
+layout_direction = 2
+theme_override_colors/font_color = Color(0.7, 0.65, 0.8, 1)
+theme_override_font_sizes/font_size = 13
+text = "Close"

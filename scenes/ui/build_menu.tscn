@@ -1,0 +1,519 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/build_menu.gd" id="1_build"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+content_margin_bottom = 8.0
+bg_color = Color(0.07, 0.05, 0.12, 0.97)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.6, 0.45, 0.1, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
+content_margin_left = 8.0
+content_margin_top = 5.0
+content_margin_right = 8.0
+content_margin_bottom = 5.0
+bg_color = Color(0.42, 0.32, 0.1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.78, 0.58, 0.18, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_flat"]
+bg_color = Color(0, 0, 0, 0)
+
+[node name="BuildMenu" type="PanelContainer"]
+layout_direction = 2
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 8.0
+offset_top = 62.0
+offset_right = 370.0
+offset_bottom = 560.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+script = ExtResource("1_build")
+
+[node name="Outer" type="VBoxContainer" parent="."]
+layout_direction = 2
+theme_override_constants/separation = 0
+
+[node name="TitleBar" type="ColorRect" parent="Outer"]
+custom_minimum_size = Vector2(0, 40)
+color = Color(0.5, 0.36, 0.08, 1)
+
+[node name="TitleRow" type="HBoxContainer" parent="Outer/TitleBar"]
+layout_direction = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="Title" type="Label" parent="Outer/TitleBar/TitleRow"]
+layout_direction = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.88, 0.4, 1)
+theme_override_font_sizes/font_size = 18
+text = "  BUILD"
+vertical_alignment = 1
+
+[node name="CloseButton" type="Button" parent="Outer/TitleBar/TitleRow"]
+unique_name_in_owner = true
+layout_direction = 2
+custom_minimum_size = Vector2(40, 40)
+theme_override_colors/font_color = Color(1, 0.75, 0.3, 1)
+theme_override_font_sizes/font_size = 18
+flat = true
+text = "X"
+
+[node name="Scroll" type="ScrollContainer" parent="Outer"]
+layout_direction = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="List" type="VBoxContainer" parent="Outer/Scroll"]
+layout_direction = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="TempleRow" type="HBoxContainer" parent="Outer/Scroll/List"]
+layout_direction = 2
+custom_minimum_size = Vector2(0, 68)
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Outer/Scroll/List/TempleRow"]
+layout_direction = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "Small Temple"
+vertical_alignment = 1
+
+[node name="Cost" type="Label" parent="Outer/Scroll/List/TempleRow"]
+layout_direction = 2
+theme_override_colors/font_color = Color(1, 0.82, 0.15, 1)
+theme_override_font_sizes/font_size = 13
+text = "30g"
+vertical_alignment = 1
+
+[node name="TempleButton" type="Button" parent="Outer/Scroll/List/TempleRow"]
+unique_name_in_owner = true
+layout_direction = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/focus = SubResource("StyleBoxFlat_flat")
+text = "Build"
+
+[node name="TempleHint" type="Label" parent="Outer/Scroll/List/TempleRow"]
+unique_name_in_owner = true
+visible = false
+theme_override_colors/font_color = Color(1, 0.25, 0.25, 1)
+theme_override_font_sizes/font_size = 12
+text = "< Build first!"
+vertical_alignment = 1
+
+[node name="ShelterSep" type="ColorRect" parent="Outer/Scroll/List"]
+custom_minimum_size = Vector2(0, 1)
+color = Color(0.55, 0.42, 0.1, 0.35)
+
+[node name="ShelterRow" type="HBoxContainer" parent="Outer/Scroll/List"]
+layout_direction = 2
+custom_minimum_size = Vector2(0, 68)
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Outer/Scroll/List/ShelterRow"]
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "Believer Shelter"
+vertical_alignment = 1
+
+[node name="Cost" type="Label" parent="Outer/Scroll/List/ShelterRow"]
+theme_override_colors/font_color = Color(1, 0.82, 0.15, 1)
+theme_override_font_sizes/font_size = 13
+text = "40g"
+vertical_alignment = 1
+
+[node name="ShelterButton" type="Button" parent="Outer/Scroll/List/ShelterRow"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/focus = SubResource("StyleBoxFlat_flat")
+text = "Build"
+
+[node name="HallSep" type="ColorRect" parent="Outer/Scroll/List"]
+custom_minimum_size = Vector2(0, 1)
+color = Color(0.55, 0.42, 0.1, 0.35)
+
+[node name="HallRow" type="HBoxContainer" parent="Outer/Scroll/List"]
+layout_direction = 2
+custom_minimum_size = Vector2(0, 68)
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Outer/Scroll/List/HallRow"]
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "Hall of the Devoted"
+vertical_alignment = 1
+
+[node name="Cost" type="Label" parent="Outer/Scroll/List/HallRow"]
+theme_override_colors/font_color = Color(1, 0.82, 0.15, 1)
+theme_override_font_sizes/font_size = 13
+text = "70g"
+vertical_alignment = 1
+
+[node name="HallButton" type="Button" parent="Outer/Scroll/List/HallRow"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/focus = SubResource("StyleBoxFlat_flat")
+text = "Build"
+
+[node name="PreacherShelterSep" type="ColorRect" parent="Outer/Scroll/List"]
+custom_minimum_size = Vector2(0, 1)
+color = Color(0.55, 0.42, 0.1, 0.35)
+
+[node name="PreacherShelterRow" type="HBoxContainer" parent="Outer/Scroll/List"]
+layout_direction = 2
+custom_minimum_size = Vector2(0, 68)
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Outer/Scroll/List/PreacherShelterRow"]
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "Preacher Shelter"
+vertical_alignment = 1
+
+[node name="Cost" type="Label" parent="Outer/Scroll/List/PreacherShelterRow"]
+theme_override_colors/font_color = Color(1, 0.82, 0.15, 1)
+theme_override_font_sizes/font_size = 13
+text = "50g"
+vertical_alignment = 1
+
+[node name="PreacherShelterButton" type="Button" parent="Outer/Scroll/List/PreacherShelterRow"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/focus = SubResource("StyleBoxFlat_flat")
+text = "Build"
+
+[node name="ArmorySep" type="ColorRect" parent="Outer/Scroll/List"]
+custom_minimum_size = Vector2(0, 1)
+color = Color(0.55, 0.42, 0.1, 0.35)
+
+[node name="ArmoryRow" type="HBoxContainer" parent="Outer/Scroll/List"]
+layout_direction = 2
+custom_minimum_size = Vector2(0, 68)
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Outer/Scroll/List/ArmoryRow"]
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "Barracks"
+vertical_alignment = 1
+
+[node name="Cost" type="Label" parent="Outer/Scroll/List/ArmoryRow"]
+theme_override_colors/font_color = Color(1, 0.82, 0.15, 1)
+theme_override_font_sizes/font_size = 13
+text = "80g"
+vertical_alignment = 1
+
+[node name="ArmoryButton" type="Button" parent="Outer/Scroll/List/ArmoryRow"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/focus = SubResource("StyleBoxFlat_flat")
+text = "Build"
+
+[node name="GarrisonSep" type="ColorRect" parent="Outer/Scroll/List"]
+custom_minimum_size = Vector2(0, 1)
+color = Color(0.55, 0.42, 0.1, 0.35)
+
+[node name="GarrisonRow" type="HBoxContainer" parent="Outer/Scroll/List"]
+layout_direction = 2
+custom_minimum_size = Vector2(0, 68)
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Outer/Scroll/List/GarrisonRow"]
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "Garrison"
+vertical_alignment = 1
+
+[node name="Cost" type="Label" parent="Outer/Scroll/List/GarrisonRow"]
+theme_override_colors/font_color = Color(1, 0.82, 0.15, 1)
+theme_override_font_sizes/font_size = 13
+text = "60g"
+vertical_alignment = 1
+
+[node name="GarrisonButton" type="Button" parent="Outer/Scroll/List/GarrisonRow"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/focus = SubResource("StyleBoxFlat_flat")
+text = "Build"
+
+[node name="GeneralsSep" type="ColorRect" parent="Outer/Scroll/List"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 1)
+color = Color(0.55, 0.42, 0.1, 0.35)
+
+[node name="GeneralsRow" type="HBoxContainer" parent="Outer/Scroll/List"]
+unique_name_in_owner = true
+layout_direction = 2
+custom_minimum_size = Vector2(0, 68)
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Outer/Scroll/List/GeneralsRow"]
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "General's Quarters"
+vertical_alignment = 1
+
+[node name="Cost" type="Label" parent="Outer/Scroll/List/GeneralsRow"]
+theme_override_colors/font_color = Color(1, 0.82, 0.15, 1)
+theme_override_font_sizes/font_size = 13
+text = "100g"
+vertical_alignment = 1
+
+[node name="GeneralsButton" type="Button" parent="Outer/Scroll/List/GeneralsRow"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/focus = SubResource("StyleBoxFlat_flat")
+text = "Build"
+
+[node name="WellSep" type="ColorRect" parent="Outer/Scroll/List"]
+custom_minimum_size = Vector2(0, 1)
+color = Color(0.55, 0.42, 0.1, 0.35)
+
+[node name="WellRow" type="HBoxContainer" parent="Outer/Scroll/List"]
+layout_direction = 2
+custom_minimum_size = Vector2(0, 68)
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Outer/Scroll/List/WellRow"]
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "Wishing Well"
+vertical_alignment = 1
+
+[node name="Cost" type="Label" parent="Outer/Scroll/List/WellRow"]
+theme_override_colors/font_color = Color(1, 0.82, 0.15, 1)
+theme_override_font_sizes/font_size = 13
+text = "25g"
+vertical_alignment = 1
+
+[node name="WellButton" type="Button" parent="Outer/Scroll/List/WellRow"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/focus = SubResource("StyleBoxFlat_flat")
+text = "Build"
+
+[node name="GardenSep" type="ColorRect" parent="Outer/Scroll/List"]
+custom_minimum_size = Vector2(0, 1)
+color = Color(0.55, 0.42, 0.1, 0.35)
+
+[node name="GardenRow" type="HBoxContainer" parent="Outer/Scroll/List"]
+layout_direction = 2
+custom_minimum_size = Vector2(0, 68)
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Outer/Scroll/List/GardenRow"]
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "Pumpkin Garden"
+vertical_alignment = 1
+
+[node name="Cost" type="Label" parent="Outer/Scroll/List/GardenRow"]
+theme_override_colors/font_color = Color(1, 0.82, 0.15, 1)
+theme_override_font_sizes/font_size = 13
+text = "30g"
+vertical_alignment = 1
+
+[node name="GardenButton" type="Button" parent="Outer/Scroll/List/GardenRow"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/focus = SubResource("StyleBoxFlat_flat")
+text = "Build"
+
+[node name="StonePoolSep" type="ColorRect" parent="Outer/Scroll/List"]
+custom_minimum_size = Vector2(0, 1)
+color = Color(0.55, 0.42, 0.1, 0.35)
+
+[node name="StonePoolRow" type="HBoxContainer" parent="Outer/Scroll/List"]
+layout_direction = 2
+custom_minimum_size = Vector2(0, 68)
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Outer/Scroll/List/StonePoolRow"]
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "Stone Pool"
+vertical_alignment = 1
+
+[node name="Cost" type="Label" parent="Outer/Scroll/List/StonePoolRow"]
+theme_override_colors/font_color = Color(1, 0.82, 0.15, 1)
+theme_override_font_sizes/font_size = 13
+text = "35g"
+vertical_alignment = 1
+
+[node name="StonePoolButton" type="Button" parent="Outer/Scroll/List/StonePoolRow"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/focus = SubResource("StyleBoxFlat_flat")
+text = "Build"
+
+[node name="RoadHSep" type="ColorRect" parent="Outer/Scroll/List"]
+custom_minimum_size = Vector2(0, 1)
+color = Color(0.55, 0.42, 0.1, 0.35)
+
+[node name="RoadHRow" type="HBoxContainer" parent="Outer/Scroll/List"]
+layout_direction = 2
+custom_minimum_size = Vector2(0, 68)
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Outer/Scroll/List/RoadHRow"]
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "Road - Straight H"
+vertical_alignment = 1
+
+[node name="Cost" type="Label" parent="Outer/Scroll/List/RoadHRow"]
+theme_override_colors/font_color = Color(1, 0.82, 0.15, 1)
+theme_override_font_sizes/font_size = 13
+text = "5g"
+vertical_alignment = 1
+
+[node name="RoadHButton" type="Button" parent="Outer/Scroll/List/RoadHRow"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/focus = SubResource("StyleBoxFlat_flat")
+text = "Build"
+
+[node name="RoadVSep" type="ColorRect" parent="Outer/Scroll/List"]
+custom_minimum_size = Vector2(0, 1)
+color = Color(0.55, 0.42, 0.1, 0.35)
+
+[node name="RoadVRow" type="HBoxContainer" parent="Outer/Scroll/List"]
+layout_direction = 2
+custom_minimum_size = Vector2(0, 68)
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Outer/Scroll/List/RoadVRow"]
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "Road - Straight V"
+vertical_alignment = 1
+
+[node name="Cost" type="Label" parent="Outer/Scroll/List/RoadVRow"]
+theme_override_colors/font_color = Color(1, 0.82, 0.15, 1)
+theme_override_font_sizes/font_size = 13
+text = "5g"
+vertical_alignment = 1
+
+[node name="RoadVButton" type="Button" parent="Outer/Scroll/List/RoadVRow"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/focus = SubResource("StyleBoxFlat_flat")
+text = "Build"
+
+[node name="RoadCornerSep" type="ColorRect" parent="Outer/Scroll/List"]
+custom_minimum_size = Vector2(0, 1)
+color = Color(0.55, 0.42, 0.1, 0.35)
+
+[node name="RoadCornerRow" type="HBoxContainer" parent="Outer/Scroll/List"]
+layout_direction = 2
+custom_minimum_size = Vector2(0, 68)
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Outer/Scroll/List/RoadCornerRow"]
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "Road - Corner"
+vertical_alignment = 1
+
+[node name="Cost" type="Label" parent="Outer/Scroll/List/RoadCornerRow"]
+theme_override_colors/font_color = Color(1, 0.82, 0.15, 1)
+theme_override_font_sizes/font_size = 13
+text = "5g"
+vertical_alignment = 1
+
+[node name="RoadCornerButton" type="Button" parent="Outer/Scroll/List/RoadCornerRow"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/focus = SubResource("StyleBoxFlat_flat")
+text = "Build"
+
+[node name="RoadTSep" type="ColorRect" parent="Outer/Scroll/List"]
+custom_minimum_size = Vector2(0, 1)
+color = Color(0.55, 0.42, 0.1, 0.35)
+
+[node name="RoadTRow" type="HBoxContainer" parent="Outer/Scroll/List"]
+layout_direction = 2
+custom_minimum_size = Vector2(0, 68)
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Outer/Scroll/List/RoadTRow"]
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "Road - T-Junction"
+vertical_alignment = 1
+
+[node name="Cost" type="Label" parent="Outer/Scroll/List/RoadTRow"]
+theme_override_colors/font_color = Color(1, 0.82, 0.15, 1)
+theme_override_font_sizes/font_size = 13
+text = "5g"
+vertical_alignment = 1
+
+[node name="RoadTButton" type="Button" parent="Outer/Scroll/List/RoadTRow"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/focus = SubResource("StyleBoxFlat_flat")
+text = "Build"
