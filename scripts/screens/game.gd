@@ -9,6 +9,7 @@ const CameraControllerScript: GDScript = preload("res://scripts/systems/camera_c
 const CampaignNavigationControllerScript: GDScript = preload("res://scripts/systems/campaign_navigation_controller.gd")
 const TutorialCopyScript: GDScript = preload("res://scripts/ui/tutorial/tutorial_copy.gd")
 const BuildingPanelFactoryScript: GDScript = preload("res://scripts/ui/building_panel_factory.gd")
+const TopBarFactoryScript: GDScript = preload("res://scripts/ui/top_bar_factory.gd")
 const WHEEL_POPUP_SCENE := preload("res://scenes/ui/wheel_of_faith_popup.tscn")
 const CRUSADE_RESULT_POPUP_SCENE := preload("res://scenes/ui/crusade_result_popup.tscn")
 const BUILD_MENU_SCENE := preload("res://scenes/ui/build_menu.tscn")
@@ -582,184 +583,27 @@ func _build_ui():
 
 
 func _build_top_bar(ui: CanvasLayer):
-	var bar := ColorRect.new()
-	bar.color    = Color(0.08, 0.06, 0.12, 0.92)
-	bar.size     = Vector2(1152, 54)
-	bar.position = Vector2.ZERO
-	ui.add_child(bar)
-
-	# Force LTR — Hebrew RTL system locale would otherwise flip everything
-	var hbox := HBoxContainer.new()
-	hbox.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	hbox.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	hbox.offset_left = 10
-	hbox.offset_top  = 6
-	hbox.add_theme_constant_override("separation", 6)
-	ui.add_child(hbox)
-
-	# People chip — clickable, shows distribution popup
-	var believers_chip := _resource_chip(Color(0.30, 0.80, 0.35), Color(0.14, 0.45, 0.18))
-	believers_label = believers_chip[0]
-	var people_chip_node: PanelContainer = believers_chip[1]
-	people_chip_node.mouse_filter = Control.MOUSE_FILTER_STOP
-	people_chip_node.gui_input.connect(_on_people_chip_input)
-	hbox.add_child(people_chip_node)
-
-	var faith_chip := _resource_chip(Color(0.72, 0.55, 1.00), Color(0.38, 0.20, 0.65))
-	faith_label = faith_chip[0]
-	hbox.add_child(faith_chip[1])
-
-	var gold_chip := _resource_chip(Color(1.00, 0.82, 0.15), Color(0.65, 0.45, 0.05))
-	gold_label = gold_chip[0]
-	hbox.add_child(gold_chip[1])
-
-	# Wheel of Faith chip — only visible when a spin is available
-	var wchip_style := StyleBoxFlat.new()
-	wchip_style.bg_color     = Color(0.45, 0.30, 0.05)
-	wchip_style.border_color = Color(0.95, 0.75, 0.10)
-	wchip_style.set_border_width_all(2)
-	wchip_style.set_corner_radius_all(8)
-	wchip_style.content_margin_left   = 8
-	wchip_style.content_margin_right  = 8
-	wchip_style.content_margin_top    = 4
-	wchip_style.content_margin_bottom = 4
-	wheel_chip_node = PanelContainer.new()
-	wheel_chip_node.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	wheel_chip_node.add_theme_stylebox_override("panel", wchip_style)
-	wheel_chip_node.mouse_filter = Control.MOUSE_FILTER_STOP
-	wheel_chip_node.visible = wheel_available
-	var wchip_lbl := Label.new()
-	wchip_lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	wchip_lbl.text = "✦ Spin"
-	wchip_lbl.add_theme_font_size_override("font_size", 14)
-	wchip_lbl.add_theme_color_override("font_color", Color(0.98, 0.88, 0.30))
-	wheel_chip_node.add_child(wchip_lbl)
-	wheel_chip_node.gui_input.connect(_on_wheel_chip_input)
-	hbox.add_child(wheel_chip_node)
-
-	# ── Hero Deck chip ──────────────────────────────────────────────────────
-	var hdchip_style := StyleBoxFlat.new()
-	hdchip_style.bg_color      = Color(0.55, 0.35, 0.05, 0.90)
-	hdchip_style.border_color  = Color(0.95, 0.75, 0.20)
-	hdchip_style.set_border_width_all(1)
-	hdchip_style.set_corner_radius_all(8)
-	hdchip_style.content_margin_left   = 8
-	hdchip_style.content_margin_right  = 8
-	hdchip_style.content_margin_top    = 4
-	hdchip_style.content_margin_bottom = 4
-	hero_deck_chip = PanelContainer.new()
-	hero_deck_chip.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	hero_deck_chip.add_theme_stylebox_override("panel", hdchip_style)
-	hero_deck_chip.mouse_filter = Control.MOUSE_FILTER_STOP
-	hero_deck_chip.visible = false   # shows only after first hero obtained
-	var hdchip_lbl := Label.new()
-	hdchip_lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	hdchip_lbl.text = "🃏 Heroes"
-	hdchip_lbl.add_theme_font_size_override("font_size", 14)
-	hdchip_lbl.add_theme_color_override("font_color", Color(0.98, 0.88, 0.30))
-	hero_deck_chip.add_child(hdchip_lbl)
-	hero_deck_chip.gui_input.connect(_on_hero_deck_chip_input)
-	hbox.add_child(hero_deck_chip)
-
-	# ── Campaign chip ────────────────────────────────────────────────────────
-	var camp_style := StyleBoxFlat.new()
-	camp_style.bg_color     = Color(0.18, 0.36, 0.16)
-	camp_style.border_color = Color(0.42, 0.72, 0.28)
-	camp_style.set_border_width_all(2)
-	camp_style.set_corner_radius_all(8)
-	camp_style.content_margin_left   = 8
-	camp_style.content_margin_right  = 8
-	camp_style.content_margin_top    = 4
-	camp_style.content_margin_bottom = 4
-	campaign_chip = PanelContainer.new()
-	campaign_chip.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	campaign_chip.add_theme_stylebox_override("panel", camp_style)
-	campaign_chip.mouse_filter = Control.MOUSE_FILTER_STOP
-	campaign_chip.visible = not GameData.mission_active
-	var camp_lbl := Label.new()
-	camp_lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	camp_lbl.text = "⚔ Mission"
-	camp_lbl.add_theme_font_size_override("font_size", 14)
-	camp_lbl.add_theme_color_override("font_color", Color(0.72, 1.00, 0.52))
-	campaign_chip.add_child(camp_lbl)
-	campaign_chip.gui_input.connect(_on_campaign_chip_input)
-	hbox.add_child(campaign_chip)
-
-	# Resume chip — only visible when a mission is already in progress
-	var ret_style := StyleBoxFlat.new()
-	ret_style.bg_color     = Color(0.42, 0.14, 0.06)
-	ret_style.border_color = Color(1.0, 0.45, 0.18)
-	ret_style.set_border_width_all(2)
-	ret_style.set_corner_radius_all(8)
-	ret_style.content_margin_left   = 8
-	ret_style.content_margin_right  = 8
-	ret_style.content_margin_top    = 4
-	ret_style.content_margin_bottom = 4
-	return_mission_chip = PanelContainer.new()
-	return_mission_chip.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	return_mission_chip.add_theme_stylebox_override("panel", ret_style)
-	return_mission_chip.mouse_filter = Control.MOUSE_FILTER_STOP
-	return_mission_chip.visible = GameData.mission_active
-	var ret_lbl := Label.new()
-	ret_lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	ret_lbl.text = "▶ Mission"
-	ret_lbl.add_theme_font_size_override("font_size", 14)
-	ret_lbl.add_theme_color_override("font_color", Color(1.0, 0.65, 0.35))
-	return_mission_chip.add_child(ret_lbl)
-	return_mission_chip.gui_input.connect(_on_return_mission_input)
-	hbox.add_child(return_mission_chip)
+	var top_bar: Dictionary = TopBarFactoryScript.build(
+		ui,
+		wheel_available,
+		GameData.mission_active,
+		_on_people_chip_input,
+		_on_wheel_chip_input,
+		_on_hero_deck_chip_input,
+		_on_campaign_chip_input,
+		_on_return_mission_input
+	)
+	believers_label = top_bar["believers_label"]
+	faith_label = top_bar["faith_label"]
+	gold_label = top_bar["gold_label"]
+	wheel_chip_node = top_bar["wheel_chip"]
+	hero_deck_chip = top_bar["hero_deck_chip"]
+	campaign_chip = top_bar["campaign_chip"]
+	return_mission_chip = top_bar["return_mission_chip"]
 
 	_build_people_panel(ui)
 
 	_refresh_resource_labels()
-
-
-# Returns [Label, chip_container] — chip = coloured badge + white number
-func _resource_chip(light: Color, dark: Color) -> Array:
-	var chip := PanelContainer.new()
-	chip.layout_direction = Control.LAYOUT_DIRECTION_LTR
-
-	var style := StyleBoxFlat.new()
-	style.bg_color = dark.darkened(0.25)
-	style.border_color = dark
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(8)
-	style.content_margin_left  = 6
-	style.content_margin_right = 10
-	style.content_margin_top   = 4
-	style.content_margin_bottom = 4
-	chip.add_theme_stylebox_override("panel", style)
-
-	var row := HBoxContainer.new()
-	row.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	row.add_theme_constant_override("separation", 5)
-	chip.add_child(row)
-
-	# Coloured dot icon
-	var dot_node := ColorRect.new()
-	dot_node.color = light
-	dot_node.custom_minimum_size = Vector2(14, 14)
-	dot_node.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(dot_node)
-
-	# White number label
-	var lbl := Label.new()
-	lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	lbl.add_theme_font_size_override("font_size", 17)
-	lbl.add_theme_color_override("font_color", Color(1, 1, 1))
-	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(lbl)
-
-	return [lbl, chip]
-
-
-func _resource_label(text: String, color: Color) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	l.add_theme_font_size_override("font_size", 17)
-	l.add_theme_color_override("font_color", color)
-	return l
 
 
 func _build_people_panel(ui: CanvasLayer):
