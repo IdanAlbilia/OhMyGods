@@ -18,6 +18,7 @@ const BuildingPanelFactoryScript: GDScript = preload("res://scripts/ui/building_
 const ConstructionPanelFactoryScript: GDScript = preload("res://scripts/ui/construction_panel_factory.gd")
 const TimedActionPanelFactoryScript: GDScript = preload("res://scripts/ui/timed_action_panel_factory.gd")
 const BaseCampHudFactoryScript: GDScript = preload("res://scripts/ui/base_camp_hud_factory.gd")
+const ShelterPanelFactoryScript: GDScript = preload("res://scripts/ui/shelter_panel_factory.gd")
 const TopBarFactoryScript: GDScript = preload("res://scripts/ui/top_bar_factory.gd")
 const PeoplePanelFactoryScript: GDScript = preload("res://scripts/ui/people_panel_factory.gd")
 const WHEEL_POPUP_SCENE := preload("res://scenes/ui/wheel_of_faith_popup.tscn")
@@ -796,226 +797,42 @@ func _build_preacher_shelter_panel(ui: CanvasLayer):
 
 
 func _build_shelter_panel(ui: CanvasLayer):
-	shelter_panel = BuildingPanelFactoryScript.make_panel(ui, Color(0.85, 0.55, 0.18), "Humble Shelter")
-	var body: VBoxContainer = BuildingPanelFactoryScript.panel_body(shelter_panel)
-
-	shelter_believer_label = BuildingPanelFactoryScript.count_row(body, "Believers", Color(0.92, 0.75, 0.38))
-
-	BuildingPanelFactoryScript.panel_sep(body, Color(0.85, 0.55, 0.18))
-
-	# Tutorial hint — shown only during TAP_GO_PRAY step
-	pray_tutorial_arrow = Label.new()
-	pray_tutorial_arrow.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	pray_tutorial_arrow.text = "↓  Tap Go Pray!"
-	pray_tutorial_arrow.add_theme_font_size_override("font_size", 14)
-	pray_tutorial_arrow.add_theme_color_override("font_color", Color(1.0, 0.18, 0.18))
-	pray_tutorial_arrow.visible = false
-	body.add_child(pray_tutorial_arrow)
-
-	# Go Pray button
-	pray_go_btn = Button.new()
-	pray_go_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	pray_go_btn.text = "🙏  Go Pray  (30 min)"
-	pray_go_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	pray_go_btn.pressed.connect(_on_go_pray_pressed)
-	BuildingPanelFactoryScript.style_action_btn(pray_go_btn, Color(0.55, 0.35, 0.82))
-	body.add_child(pray_go_btn)
-
-	# Selector row (hidden initially)
-	pray_selector_row = HBoxContainer.new()
-	pray_selector_row.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	pray_selector_row.add_theme_constant_override("separation", 4)
-	pray_selector_row.visible = false
-	body.add_child(pray_selector_row)
-
-	var minus_btn := Button.new()
-	minus_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	minus_btn.text = "−"
-	minus_btn.custom_minimum_size = Vector2(30, 0)
-	minus_btn.pressed.connect(func():
-		prayer_selector_count = max(1, prayer_selector_count - 1)
-		_update_pray_selector_label()
+	var refs: Dictionary = ShelterPanelFactoryScript.build_humble(
+		ui,
+		_on_go_pray_pressed,
+		_on_prayer_selector_minus_pressed,
+		_on_prayer_selector_plus_pressed,
+		_on_pray_confirm_pressed,
+		_on_pray_cancel_pressed,
+		_on_pray_rush_pressed
 	)
-	BuildingPanelFactoryScript.style_action_btn(minus_btn, Color(0.55, 0.35, 0.82))
-	pray_selector_row.add_child(minus_btn)
-
-	pray_selector_label = Label.new()
-	pray_selector_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	pray_selector_label.text_direction = Control.TEXT_DIRECTION_LTR
-	pray_selector_label.text = "1 believer"
-	pray_selector_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	pray_selector_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	pray_selector_label.add_theme_font_size_override("font_size", 13)
-	pray_selector_label.add_theme_color_override("font_color", Color(0.88, 0.86, 0.82))
-	pray_selector_row.add_child(pray_selector_label)
-
-	var plus_btn := Button.new()
-	plus_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	plus_btn.text = "+"
-	plus_btn.custom_minimum_size = Vector2(30, 0)
-	plus_btn.pressed.connect(func():
-		prayer_selector_count = min(believers_count, prayer_selector_count + 1)
-		_update_pray_selector_label()
-	)
-	BuildingPanelFactoryScript.style_action_btn(plus_btn, Color(0.55, 0.35, 0.82))
-	pray_selector_row.add_child(plus_btn)
-
-	var confirm_btn := Button.new()
-	confirm_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	confirm_btn.text = "Send to Pray"
-	confirm_btn.pressed.connect(_on_pray_confirm_pressed)
-	BuildingPanelFactoryScript.style_action_btn(confirm_btn, Color(0.55, 0.35, 0.82))
-	pray_selector_row.add_child(confirm_btn)
-
-	var cancel_btn := Button.new()
-	cancel_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	cancel_btn.text = "Cancel"
-	cancel_btn.pressed.connect(_on_pray_cancel_pressed)
-	BuildingPanelFactoryScript.style_action_btn(cancel_btn, Color(0.50, 0.48, 0.44))
-	pray_selector_row.add_child(cancel_btn)
-
-	# Progress container (hidden initially)
-	pray_progress_container = VBoxContainer.new()
-	pray_progress_container.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	pray_progress_container.add_theme_constant_override("separation", 6)
-	pray_progress_container.visible = false
-	body.add_child(pray_progress_container)
-
-	pray_status_label = Label.new()
-	pray_status_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	pray_status_label.text = "Praying: 1 believer — 30:00"
-	pray_status_label.add_theme_font_size_override("font_size", 13)
-	pray_status_label.add_theme_color_override("font_color", Color(0.88, 0.86, 0.82))
-	pray_progress_container.add_child(pray_status_label)
-
-	var bar_bg := ColorRect.new()
-	bar_bg.color = Color(0.10, 0.08, 0.18)
-	bar_bg.custom_minimum_size = Vector2(0, 8)
-	bar_bg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	pray_progress_container.add_child(bar_bg)
-	pray_bar = ColorRect.new()
-	pray_bar.color = Color(0.55, 0.35, 0.82)
-	pray_bar.anchor_top = 0.0; pray_bar.anchor_bottom = 1.0
-	pray_bar.anchor_left = 0.0; pray_bar.anchor_right = 0.0
-	bar_bg.add_child(pray_bar)
-
-	pray_rush_btn = Button.new()
-	pray_rush_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	pray_rush_btn.text = "⚡ -10m"
-	pray_rush_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	pray_rush_btn.pressed.connect(_on_pray_rush_pressed)
-	BuildingPanelFactoryScript.style_action_btn(pray_rush_btn, Color(0.85, 0.65, 0.10))
-	pray_progress_container.add_child(pray_rush_btn)
-
-	BuildingPanelFactoryScript.panel_sep(body, Color(0.85, 0.55, 0.18))
-
-	var upg := Button.new()
-	upg.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	upg.text = "⬆  Upgrade Building   (Coming Soon)"
-	upg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	upg.disabled = true
-	BuildingPanelFactoryScript.style_action_btn(upg, Color(0.50, 0.48, 0.44))
-	body.add_child(upg)
+	shelter_panel = refs["panel"]
+	shelter_believer_label = refs["count_label"]
+	pray_tutorial_arrow = refs["tutorial_arrow"]
+	pray_go_btn = refs["go_button"]
+	pray_selector_row = refs["selector_row"]
+	pray_selector_label = refs["selector_label"]
+	pray_progress_container = refs["progress_container"]
+	pray_status_label = refs["status_label"]
+	pray_bar = refs["progress_bar"]
+	pray_rush_btn = refs["rush_button"]
 
 
 func _build_extra_shelter_panel(ui: CanvasLayer):
-	extra_shelter_panel = BuildingPanelFactoryScript.make_panel(ui, Color(0.85, 0.55, 0.18), "Believer Shelter")
-	var body: VBoxContainer = BuildingPanelFactoryScript.panel_body(extra_shelter_panel)
-
-	extra_shelter_label = BuildingPanelFactoryScript.count_row(body, "Believers", Color(0.92, 0.75, 0.38))
-
-	BuildingPanelFactoryScript.panel_sep(body, Color(0.85, 0.55, 0.18))
-
-	# Go Pray button
-	extra_pray_go_btn = Button.new()
-	extra_pray_go_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	extra_pray_go_btn.text = "🙏  Go Pray  (30 min)"
-	extra_pray_go_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	extra_pray_go_btn.pressed.connect(_on_extra_go_pray_pressed)
-	BuildingPanelFactoryScript.style_action_btn(extra_pray_go_btn, Color(0.55, 0.35, 0.82))
-	body.add_child(extra_pray_go_btn)
-
-	# Selector row
-	extra_pray_selector_row = HBoxContainer.new()
-	extra_pray_selector_row.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	extra_pray_selector_row.add_theme_constant_override("separation", 4)
-	extra_pray_selector_row.visible = false
-	body.add_child(extra_pray_selector_row)
-
-	var minus_btn := Button.new()
-	minus_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	minus_btn.text = "−"
-	minus_btn.custom_minimum_size = Vector2(30, 0)
-	minus_btn.pressed.connect(func():
-		extra_pray_selector_count = max(1, extra_pray_selector_count - 1)
-		_update_extra_pray_selector_label()
+	var refs: Dictionary = ShelterPanelFactoryScript.build_extra(
+		ui,
+		_on_extra_go_pray_pressed,
+		_on_extra_prayer_selector_minus_pressed,
+		_on_extra_prayer_selector_plus_pressed,
+		_on_extra_pray_confirm_pressed,
+		_on_extra_pray_cancel_pressed
 	)
-	BuildingPanelFactoryScript.style_action_btn(minus_btn, Color(0.55, 0.35, 0.82))
-	extra_pray_selector_row.add_child(minus_btn)
-
-	extra_pray_selector_label = Label.new()
-	extra_pray_selector_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	extra_pray_selector_label.text_direction = Control.TEXT_DIRECTION_LTR
-	extra_pray_selector_label.text = "1 believer"
-	extra_pray_selector_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	extra_pray_selector_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	extra_pray_selector_label.add_theme_font_size_override("font_size", 13)
-	extra_pray_selector_row.add_child(extra_pray_selector_label)
-
-	var plus_btn := Button.new()
-	plus_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	plus_btn.text = "+"
-	plus_btn.custom_minimum_size = Vector2(30, 0)
-	plus_btn.pressed.connect(func():
-		var in_shelter: int = clamp(believers_count - current_extra_shelter_idx * 5, 0, 5)
-		var temple_slots: int = 5 - _praying_count()
-		extra_pray_selector_count = min(extra_pray_selector_count + 1, mini(in_shelter, temple_slots))
-		_update_extra_pray_selector_label()
-	)
-	BuildingPanelFactoryScript.style_action_btn(plus_btn, Color(0.55, 0.35, 0.82))
-	extra_pray_selector_row.add_child(plus_btn)
-
-	var confirm_btn := Button.new()
-	confirm_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	confirm_btn.text = "Send to Pray"
-	confirm_btn.pressed.connect(_on_extra_pray_confirm_pressed)
-	BuildingPanelFactoryScript.style_action_btn(confirm_btn, Color(0.55, 0.35, 0.82))
-	extra_pray_selector_row.add_child(confirm_btn)
-
-	var cancel_btn := Button.new()
-	cancel_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	cancel_btn.text = "Cancel"
-	cancel_btn.pressed.connect(func():
-		extra_pray_selector_row.visible = false
-		extra_pray_go_btn.visible = true
-	)
-	BuildingPanelFactoryScript.style_action_btn(cancel_btn, Color(0.50, 0.48, 0.44))
-	extra_pray_selector_row.add_child(cancel_btn)
-
-	# Progress container (shown during active session from this shelter)
-	extra_pray_progress_container = VBoxContainer.new()
-	extra_pray_progress_container.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	extra_pray_progress_container.add_theme_constant_override("separation", 4)
-	extra_pray_progress_container.visible = false
-	body.add_child(extra_pray_progress_container)
-
-	var prog_lbl := Label.new()
-	prog_lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	prog_lbl.text_direction = Control.TEXT_DIRECTION_LTR
-	prog_lbl.text = "Praying..."
-	prog_lbl.add_theme_font_size_override("font_size", 13)
-	prog_lbl.add_theme_color_override("font_color", Color(0.88, 0.86, 0.82))
-	extra_pray_progress_container.add_child(prog_lbl)
-
-	BuildingPanelFactoryScript.panel_sep(body, Color(0.85, 0.55, 0.18))
-
-	var upg := Button.new()
-	upg.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	upg.text = "⬆  Upgrade Building   (Coming Soon)"
-	upg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	upg.disabled = true
-	BuildingPanelFactoryScript.style_action_btn(upg, Color(0.50, 0.48, 0.44))
-	body.add_child(upg)
+	extra_shelter_panel = refs["panel"]
+	extra_shelter_label = refs["count_label"]
+	extra_pray_go_btn = refs["go_button"]
+	extra_pray_selector_row = refs["selector_row"]
+	extra_pray_selector_label = refs["selector_label"]
+	extra_pray_progress_container = refs["progress_container"]
 
 
 func _refresh_extra_shelter_panel():
@@ -1040,6 +857,16 @@ func _on_extra_go_pray_pressed():
 	extra_pray_go_btn.visible = false
 	extra_pray_selector_row.visible = true
 
+func _on_extra_prayer_selector_minus_pressed():
+	extra_pray_selector_count = max(1, extra_pray_selector_count - 1)
+	_update_extra_pray_selector_label()
+
+func _on_extra_prayer_selector_plus_pressed():
+	var in_shelter: int = clamp(believers_count - current_extra_shelter_idx * 5, 0, 5)
+	var temple_slots: int = 5 - _praying_count()
+	extra_pray_selector_count = min(extra_pray_selector_count + 1, mini(in_shelter, temple_slots))
+	_update_extra_pray_selector_label()
+
 func _update_extra_pray_selector_label():
 	var s := "s" if extra_pray_selector_count > 1 else ""
 	extra_pray_selector_label.text = "%d believer%s" % [extra_pray_selector_count, s]
@@ -1052,6 +879,10 @@ func _on_extra_pray_confirm_pressed():
 		return
 	_start_prayer_session(current_extra_shelter_idx, shelter_pos + Vector2(0, 80), extra_pray_selector_count,
 		extra_pray_selector_row, extra_pray_progress_container, extra_pray_go_btn)
+
+func _on_extra_pray_cancel_pressed():
+	extra_pray_selector_row.visible = false
+	extra_pray_go_btn.visible = true
 
 
 func _praying_count() -> int:
@@ -1078,6 +909,16 @@ func _on_go_pray_pressed():
 		tut_step = TutStep.CHOOSE_BELIEVERS
 		tut_popup_dismissed = true
 		_update_tutorial()
+
+
+func _on_prayer_selector_minus_pressed():
+	prayer_selector_count = max(1, prayer_selector_count - 1)
+	_update_pray_selector_label()
+
+
+func _on_prayer_selector_plus_pressed():
+	prayer_selector_count = min(believers_count, prayer_selector_count + 1)
+	_update_pray_selector_label()
 
 
 func _on_pray_cancel_pressed():
