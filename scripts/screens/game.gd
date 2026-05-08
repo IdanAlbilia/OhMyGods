@@ -13,7 +13,11 @@ const BuildingPlacementRulesScript: GDScript = preload("res://scripts/systems/bu
 const BaseCampBuildingFactoryScript: GDScript = preload("res://scripts/systems/base_camp_building_factory.gd")
 const RoadNavigatorScript: GDScript = preload("res://scripts/systems/road_navigator.gd")
 const TutorialCopyScript: GDScript = preload("res://scripts/ui/tutorial/tutorial_copy.gd")
+const TutorialPanelFactoryScript: GDScript = preload("res://scripts/ui/tutorial/tutorial_panel_factory.gd")
 const BuildingPanelFactoryScript: GDScript = preload("res://scripts/ui/building_panel_factory.gd")
+const ConstructionPanelFactoryScript: GDScript = preload("res://scripts/ui/construction_panel_factory.gd")
+const TimedActionPanelFactoryScript: GDScript = preload("res://scripts/ui/timed_action_panel_factory.gd")
+const BaseCampHudFactoryScript: GDScript = preload("res://scripts/ui/base_camp_hud_factory.gd")
 const TopBarFactoryScript: GDScript = preload("res://scripts/ui/top_bar_factory.gd")
 const PeoplePanelFactoryScript: GDScript = preload("res://scripts/ui/people_panel_factory.gd")
 const WHEEL_POPUP_SCENE := preload("res://scenes/ui/wheel_of_faith_popup.tscn")
@@ -507,16 +511,9 @@ func _refresh_people_panel():
 
 
 func _build_info_popup(ui: CanvasLayer):
-	info_popup = PanelContainer.new()
-	info_popup.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	info_popup.visible = false
-	ui.add_child(info_popup)
-
-	info_popup_label = Label.new()
-	info_popup_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	info_popup_label.add_theme_font_size_override("font_size", 15)
-	info_popup_label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.75))
-	info_popup.add_child(info_popup_label)
+	var refs: Dictionary = BaseCampHudFactoryScript.build_info_popup(ui)
+	info_popup = refs["panel"]
+	info_popup_label = refs["label"]
 
 
 func _show_building_info(building: StaticBody2D, text: String):
@@ -561,22 +558,7 @@ func _on_preacher_shelter_tapped():
 
 
 func _build_build_button(ui: CanvasLayer):
-	build_button = Button.new()
-	build_button.text = "Build"
-	build_button.custom_minimum_size = Vector2(120, 44)
-	build_button.add_theme_font_size_override("font_size", 18)
-	build_button.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	# Anchor to bottom-right corner so it's always in the corner regardless of RTL
-	build_button.anchor_left   = 1.0
-	build_button.anchor_right  = 1.0
-	build_button.anchor_top    = 1.0
-	build_button.anchor_bottom = 1.0
-	build_button.offset_left   = -130
-	build_button.offset_top    = -54
-	build_button.offset_right  = 0
-	build_button.offset_bottom = 0
-	build_button.pressed.connect(_on_build_pressed)
-	ui.add_child(build_button)
+	build_button = BaseCampHudFactoryScript.build_button(ui, _on_build_pressed)
 
 
 # ── Road placement ────────────────────────────────────────────────────────────
@@ -625,121 +607,37 @@ func _build_build_menu(ui: CanvasLayer):
 
 
 func _build_conversion_panel(ui: CanvasLayer):
-	conversion_panel = BuildingPanelFactoryScript.make_panel(ui, Color(0.35, 0.55, 1.00), "Hall of the Devoted")
-
-	var body: VBoxContainer = BuildingPanelFactoryScript.panel_body(conversion_panel)
-
-	# Status + progress
-	conversion_label = Label.new()
-	conversion_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	conversion_label.text = "Ready to convert"
-	conversion_label.add_theme_font_size_override("font_size", 13)
-	conversion_label.add_theme_color_override("font_color", Color(0.88, 0.86, 0.82))
-	body.add_child(conversion_label)
-
-	var bar_bg := ColorRect.new()
-	bar_bg.color = Color(0.10, 0.08, 0.18)
-	bar_bg.custom_minimum_size = Vector2(0, 8)
-	bar_bg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_child(bar_bg)
-	conversion_bar = ColorRect.new()
-	conversion_bar.color = Color(0.35, 0.55, 1.00)
-	conversion_bar.anchor_top = 0.0; conversion_bar.anchor_bottom = 1.0
-	conversion_bar.anchor_left = 0.0; conversion_bar.anchor_right = 0.0
-	bar_bg.add_child(conversion_bar)
-
-	# Action buttons
-	var btn_row := HBoxContainer.new()
-	btn_row.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	btn_row.add_theme_constant_override("separation", 8)
-	body.add_child(btn_row)
-
-	convert_btn = Button.new()
-	convert_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	convert_btn.text = "Convert Believer  (1 hr)"
-	convert_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	convert_btn.pressed.connect(_on_convert_pressed)
-	BuildingPanelFactoryScript.style_action_btn(convert_btn, Color(0.35, 0.55, 1.00))
-	btn_row.add_child(convert_btn)
-
-	conversion_rush_btn = Button.new()
-	conversion_rush_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	conversion_rush_btn.text = "⚡ -10m"
-	conversion_rush_btn.custom_minimum_size = Vector2(70, 0)
-	conversion_rush_btn.visible = false
-	conversion_rush_btn.pressed.connect(_on_conversion_rush_pressed)
-	BuildingPanelFactoryScript.style_action_btn(conversion_rush_btn, Color(0.85, 0.65, 0.10))
-	btn_row.add_child(conversion_rush_btn)
-
-	BuildingPanelFactoryScript.panel_sep(body, Color(0.35, 0.55, 1.00))
-
-	# Upgrade button (locked)
-	var upg := Button.new()
-	upg.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	upg.text = "⬆  Upgrade Building   (Coming Soon)"
-	upg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	upg.disabled = true
-	BuildingPanelFactoryScript.style_action_btn(upg, Color(0.50, 0.48, 0.44))
-	body.add_child(upg)
+	var refs: Dictionary = TimedActionPanelFactoryScript.build(
+		ui,
+		Color(0.35, 0.55, 1.00),
+		"Hall of the Devoted",
+		"Ready to convert",
+		"Convert Believer  (1 hr)",
+		_on_convert_pressed,
+		_on_conversion_rush_pressed
+	)
+	conversion_panel = refs["panel"]
+	conversion_label = refs["status_label"]
+	conversion_bar = refs["progress_bar"]
+	convert_btn = refs["primary_button"]
+	conversion_rush_btn = refs["rush_button"]
 
 
 func _build_training_panel(ui: CanvasLayer):
-	training_panel = BuildingPanelFactoryScript.make_panel(ui, Color(0.85, 0.28, 0.18), "Barracks")
-
-	var body: VBoxContainer = BuildingPanelFactoryScript.panel_body(training_panel)
-
-	# Status + progress
-	training_label = Label.new()
-	training_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	training_label.text = "Ready to train"
-	training_label.add_theme_font_size_override("font_size", 13)
-	training_label.add_theme_color_override("font_color", Color(0.88, 0.86, 0.82))
-	body.add_child(training_label)
-
-	var bar_bg := ColorRect.new()
-	bar_bg.color = Color(0.10, 0.08, 0.18)
-	bar_bg.custom_minimum_size = Vector2(0, 8)
-	bar_bg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_child(bar_bg)
-	training_bar = ColorRect.new()
-	training_bar.color = Color(0.85, 0.28, 0.18)
-	training_bar.anchor_top = 0.0; training_bar.anchor_bottom = 1.0
-	training_bar.anchor_left = 0.0; training_bar.anchor_right = 0.0
-	bar_bg.add_child(training_bar)
-
-	# Action buttons
-	var btn_row := HBoxContainer.new()
-	btn_row.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	btn_row.add_theme_constant_override("separation", 8)
-	body.add_child(btn_row)
-
-	train_btn = Button.new()
-	train_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	train_btn.text = "Train Soldier  (30 min)"
-	train_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	train_btn.pressed.connect(_on_train_pressed)
-	BuildingPanelFactoryScript.style_action_btn(train_btn, Color(0.85, 0.28, 0.18))
-	btn_row.add_child(train_btn)
-
-	training_rush_btn = Button.new()
-	training_rush_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	training_rush_btn.text = "⚡ -10m"
-	training_rush_btn.custom_minimum_size = Vector2(70, 0)
-	training_rush_btn.visible = false
-	training_rush_btn.pressed.connect(_on_training_rush_pressed)
-	BuildingPanelFactoryScript.style_action_btn(training_rush_btn, Color(0.85, 0.65, 0.10))
-	btn_row.add_child(training_rush_btn)
-
-	BuildingPanelFactoryScript.panel_sep(body, Color(0.85, 0.28, 0.18))
-
-	# Upgrade button (locked)
-	var upg := Button.new()
-	upg.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	upg.text = "⬆  Upgrade Building   (Coming Soon)"
-	upg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	upg.disabled = true
-	BuildingPanelFactoryScript.style_action_btn(upg, Color(0.50, 0.48, 0.44))
-	body.add_child(upg)
+	var refs: Dictionary = TimedActionPanelFactoryScript.build(
+		ui,
+		Color(0.85, 0.28, 0.18),
+		"Barracks",
+		"Ready to train",
+		"Train Soldier  (30 min)",
+		_on_train_pressed,
+		_on_training_rush_pressed
+	)
+	training_panel = refs["panel"]
+	training_label = refs["status_label"]
+	training_bar = refs["progress_bar"]
+	train_btn = refs["primary_button"]
+	training_rush_btn = refs["rush_button"]
 
 
 func _build_preacher_shelter_panel(ui: CanvasLayer):
@@ -1496,286 +1394,28 @@ func _build_garrison_panel(ui: CanvasLayer):
 
 
 func _build_tutorial_panel(ui: CanvasLayer):
-	# Full-screen overlay — blocks input while popup is showing
-	tutorial_overlay = ColorRect.new()
-	tutorial_overlay.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	tutorial_overlay.anchor_left   = 0.0
-	tutorial_overlay.anchor_right  = 1.0
-	tutorial_overlay.anchor_top    = 0.0
-	tutorial_overlay.anchor_bottom = 1.0
-	tutorial_overlay.color = Color(0.0, 0.0, 0.0, 0.55)
-	tutorial_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	tutorial_overlay.visible = false
-	ui.add_child(tutorial_overlay)
-
-	# Centered popup card (DragonVale style)
-	tutorial_popup = PanelContainer.new()
-	tutorial_popup.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	tutorial_popup.anchor_left   = 0.5
-	tutorial_popup.anchor_right  = 0.5
-	tutorial_popup.anchor_top    = 0.5
-	tutorial_popup.anchor_bottom = 0.5
-	tutorial_popup.offset_left   = -235
-	tutorial_popup.offset_right  = 235
-	tutorial_popup.offset_top    = -115
-	tutorial_popup.offset_bottom = 115
-	var _popup_style := StyleBoxFlat.new()
-	_popup_style.bg_color = Color(0.08, 0.06, 0.16, 0.97)
-	_popup_style.border_color = Color(0.85, 0.68, 0.15)
-	_popup_style.set_border_width_all(3)
-	_popup_style.set_corner_radius_all(12)
-	_popup_style.content_margin_left   = 14
-	_popup_style.content_margin_right  = 14
-	_popup_style.content_margin_top    = 12
-	_popup_style.content_margin_bottom = 12
-	tutorial_popup.add_theme_stylebox_override("panel", _popup_style)
-	tutorial_popup.visible = false
-	ui.add_child(tutorial_popup)
-
-	var _hbox := HBoxContainer.new()
-	_hbox.add_theme_constant_override("separation", 14)
-	tutorial_popup.add_child(_hbox)
-
-	# Leader portrait on the left. Keep it boxed so tall character art cannot
-	# expand the tutorial popup and push the OK button out of reach.
-	var _portrait_frame := Control.new()
-	_portrait_frame.custom_minimum_size = Vector2(100, 150)
-	_portrait_frame.clip_contents = true
-	_portrait_frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_portrait_frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_hbox.add_child(_portrait_frame)
-
-	var _portrait := TextureRect.new()
-	_portrait.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var _portrait_path: String
-	match GameData.selected_leader:
-		0: _portrait_path = "res://assets/characters/leaders/High Priest.png"
-		1: _portrait_path = "res://assets/characters/leaders/Prophet of Wealth.png"
-		2: _portrait_path = "res://assets/characters/leaders/Holy General.png"
-		_: _portrait_path = "res://assets/characters/leaders/High Priest.png"
-	_portrait.texture = load(_portrait_path)
-	_portrait_frame.add_child(_portrait)
-
-	# Right side: leader name + speech text + OK button
-	var _vbox := VBoxContainer.new()
-	_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_vbox.add_theme_constant_override("separation", 8)
-	_hbox.add_child(_vbox)
-
-	var _name_lbl := Label.new()
-	_name_lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	_name_lbl.text = GameData.leader_name
-	_name_lbl.add_theme_font_size_override("font_size", 17)
-	_name_lbl.add_theme_color_override("font_color", Color(0.95, 0.80, 0.25))
-	_vbox.add_child(_name_lbl)
-
-	tutorial_popup_text = Label.new()
-	tutorial_popup_text.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	tutorial_popup_text.text = ""
-	tutorial_popup_text.add_theme_font_size_override("font_size", 14)
-	tutorial_popup_text.add_theme_color_override("font_color", Color(0.92, 0.92, 0.92))
-	tutorial_popup_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	tutorial_popup_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_vbox.add_child(tutorial_popup_text)
-
-	var _btn_row := HBoxContainer.new()
-	_btn_row.alignment = BoxContainer.ALIGNMENT_END
-	_vbox.add_child(_btn_row)
-
-	var _ok_btn := Button.new()
-	_ok_btn.text = "OK"
-	_ok_btn.custom_minimum_size = Vector2(80, 36)
-	_ok_btn.pressed.connect(_on_tutorial_popup_ok)
-	_btn_row.add_child(_ok_btn)
-
-	# ── Arrow hints (shown after popup is dismissed) ──────────────────────────
-
-	# Floating badge that tracks the Humble Shelter on the map (TAP_SHELTER step)
-	shelter_arrow = PanelContainer.new()
-	shelter_arrow.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	shelter_arrow.anchor_left   = 0.0
-	shelter_arrow.anchor_right  = 0.0
-	shelter_arrow.anchor_top    = 0.0
-	shelter_arrow.anchor_bottom = 0.0
-	shelter_arrow.offset_left   = 0
-	shelter_arrow.offset_right  = 180
-	shelter_arrow.offset_top    = 0
-	shelter_arrow.offset_bottom = 36
-	var _sa_style := StyleBoxFlat.new()
-	_sa_style.bg_color = Color(0.05, 0.04, 0.10, 0.88)
-	_sa_style.border_color = Color(0.95, 0.15, 0.15)
-	_sa_style.set_border_width_all(2)
-	_sa_style.set_corner_radius_all(7)
-	_sa_style.content_margin_left  = 10
-	_sa_style.content_margin_right = 10
-	_sa_style.content_margin_top   = 5
-	_sa_style.content_margin_bottom = 5
-	shelter_arrow.add_theme_stylebox_override("panel", _sa_style)
-	shelter_arrow.visible = false
-	ui.add_child(shelter_arrow)
-
-	shelter_arrow_label = Label.new()
-	shelter_arrow_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	shelter_arrow_label.text = "↓  Tap Shelter"
-	shelter_arrow_label.add_theme_font_size_override("font_size", 17)
-	shelter_arrow_label.add_theme_color_override("font_color", Color(0.95, 0.15, 0.15))
-	shelter_arrow_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	shelter_arrow.add_child(shelter_arrow_label)
-
-	# "Tap Rush →" label on the LEFT side of the Rush button row, pointing right
-	rush_tutorial_arrow = Label.new()
-	rush_tutorial_arrow.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	rush_tutorial_arrow.text = "Tap Rush →"
-	rush_tutorial_arrow.add_theme_font_size_override("font_size", 14)
-	rush_tutorial_arrow.add_theme_color_override("font_color", Color(1.0, 0.30, 0.30))
-	rush_tutorial_arrow.anchor_left   = 0.0
-	rush_tutorial_arrow.anchor_right  = 0.0
-	rush_tutorial_arrow.anchor_top    = 1.0
-	rush_tutorial_arrow.anchor_bottom = 1.0
-	rush_tutorial_arrow.offset_left   = 16
-	rush_tutorial_arrow.offset_right  = 160
-	rush_tutorial_arrow.offset_top    = -82
-	rush_tutorial_arrow.offset_bottom = -60
-	rush_tutorial_arrow.visible = false
-	ui.add_child(rush_tutorial_arrow)
-
-	# Floating badge below the Wheel of Faith chip (WHEEL_HINT step)
-	wheel_tutorial_arrow = PanelContainer.new()
-	wheel_tutorial_arrow.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	wheel_tutorial_arrow.anchor_left   = 0.0
-	wheel_tutorial_arrow.anchor_right  = 0.0
-	wheel_tutorial_arrow.anchor_top    = 0.0
-	wheel_tutorial_arrow.anchor_bottom = 0.0
-	wheel_tutorial_arrow.offset_top    = 58
-	wheel_tutorial_arrow.offset_bottom = 94
-	var _wa_style := StyleBoxFlat.new()
-	_wa_style.bg_color = Color(0.05, 0.04, 0.10, 0.90)
-	_wa_style.border_color = Color(0.95, 0.15, 0.15)
-	_wa_style.set_border_width_all(2)
-	_wa_style.set_corner_radius_all(7)
-	_wa_style.content_margin_left   = 8
-	_wa_style.content_margin_right  = 8
-	_wa_style.content_margin_top    = 4
-	_wa_style.content_margin_bottom = 4
-	wheel_tutorial_arrow.add_theme_stylebox_override("panel", _wa_style)
-	wheel_tutorial_arrow.visible = false
-	var _wa_lbl := Label.new()
-	_wa_lbl.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	_wa_lbl.text = "↑  Tap to Spin!"
-	_wa_lbl.add_theme_font_size_override("font_size", 14)
-	_wa_lbl.add_theme_color_override("font_color", Color(0.95, 0.15, 0.15))
-	wheel_tutorial_arrow.add_child(_wa_lbl)
-	ui.add_child(wheel_tutorial_arrow)
-
-	# Floating toast label for quick error feedback ("not enough gold", etc.)
-	tutorial_label = Label.new()
-	tutorial_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	tutorial_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	tutorial_label.offset_top    = 52
-	tutorial_label.offset_bottom = 80
-	tutorial_label.offset_left   = -300
-	tutorial_label.offset_right  =  300
-	tutorial_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tutorial_label.add_theme_font_size_override("font_size", 14)
-	tutorial_label.add_theme_color_override("font_color", Color(1.0, 0.30, 0.20))
-	tutorial_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
-	tutorial_label.add_theme_constant_override("shadow_offset_x", 1)
-	tutorial_label.add_theme_constant_override("shadow_offset_y", 1)
-	tutorial_label.text = ""
-	ui.add_child(tutorial_label)
+	var refs: Dictionary = TutorialPanelFactoryScript.build(
+		ui,
+		GameData.leader_name,
+		GameData.selected_leader,
+		_on_tutorial_popup_ok
+	)
+	tutorial_overlay = refs["overlay"]
+	tutorial_popup = refs["popup"]
+	tutorial_popup_text = refs["popup_text"]
+	shelter_arrow = refs["shelter_arrow"]
+	shelter_arrow_label = refs["shelter_arrow_label"]
+	rush_tutorial_arrow = refs["rush_arrow"]
+	wheel_tutorial_arrow = refs["wheel_arrow"]
+	tutorial_label = refs["toast_label"]
 
 
 func _build_construction_panel(ui: CanvasLayer):
-	construction_panel = PanelContainer.new()
-	construction_panel.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	construction_panel.anchor_left   = 0.0
-	construction_panel.anchor_right  = 1.0
-	construction_panel.anchor_top    = 1.0
-	construction_panel.anchor_bottom = 1.0
-	construction_panel.offset_left   = 8
-	construction_panel.offset_right  = -8
-	construction_panel.offset_top    = -155
-	construction_panel.offset_bottom = -48
-	construction_panel.visible = false
-
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.08, 0.05, 0.02, 0.95)
-	panel_style.border_color = Color(0.72, 0.54, 0.16)
-	panel_style.set_border_width_all(2)
-	panel_style.set_corner_radius_all(8)
-	panel_style.content_margin_top    = 8
-	panel_style.content_margin_bottom = 8
-	panel_style.content_margin_left   = 14
-	panel_style.content_margin_right  = 14
-	construction_panel.add_theme_stylebox_override("panel", panel_style)
-	ui.add_child(construction_panel)
-
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 7)
-	construction_panel.add_child(vbox)
-
-	# Title: building name + countdown
-	construction_label = Label.new()
-	construction_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	construction_label.text = "Building — 5:00"
-	construction_label.add_theme_font_size_override("font_size", 15)
-	construction_label.add_theme_color_override("font_color", Color(0.98, 0.84, 0.34))
-	construction_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.75))
-	construction_label.add_theme_constant_override("shadow_offset_x", 1)
-	construction_label.add_theme_constant_override("shadow_offset_y", 1)
-	vbox.add_child(construction_label)
-
-	# Progress bar — dark bg with amber fill and shine strip
-	var bar_bg := ColorRect.new()
-	bar_bg.color = Color(0.06, 0.04, 0.01)
-	bar_bg.custom_minimum_size = Vector2(0, 20)
-	bar_bg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_child(bar_bg)
-
-	construction_bar = ColorRect.new()
-	construction_bar.color = Color(0.88, 0.62, 0.12)
-	construction_bar.anchor_top    = 0.0
-	construction_bar.anchor_bottom = 1.0
-	construction_bar.anchor_left   = 0.0
-	construction_bar.anchor_right  = 0.0
-	bar_bg.add_child(construction_bar)
-
-	var bar_shine := ColorRect.new()
-	bar_shine.color = Color(1.0, 0.96, 0.55, 0.45)
-	bar_shine.anchor_top    = 0.0
-	bar_shine.anchor_bottom = 0.0
-	bar_shine.anchor_left   = 0.0
-	bar_shine.anchor_right  = 1.0
-	bar_shine.offset_top    = 2
-	bar_shine.offset_bottom = 7
-	construction_bar.add_child(bar_shine)
-
-	# Rush button — warm amber style
-	rush_button = Button.new()
-	rush_button.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	rush_button.text = "⚡  Rush!  (1 Faith Point)"
-	rush_button.add_theme_font_size_override("font_size", 14)
-	rush_button.add_theme_color_override("font_color",          Color(1.00, 0.92, 0.28))
-	rush_button.add_theme_color_override("font_hover_color",    Color(1.00, 0.98, 0.55))
-	rush_button.add_theme_color_override("font_pressed_color",  Color(0.90, 0.78, 0.18))
-	rush_button.add_theme_color_override("font_disabled_color", Color(0.55, 0.44, 0.22))
-	rush_button.pressed.connect(_on_rush_pressed)
-
-	var _btn_mk := func(bg: Color, border: Color) -> StyleBoxFlat:
-		var s := StyleBoxFlat.new()
-		s.bg_color = bg; s.border_color = border
-		s.set_border_width_all(2); s.set_corner_radius_all(6)
-		s.content_margin_top = 5; s.content_margin_bottom = 5
-		s.content_margin_left = 14; s.content_margin_right = 14
-		return s
-	rush_button.add_theme_stylebox_override("normal",   _btn_mk.call(Color(0.38, 0.22, 0.05), Color(0.78, 0.58, 0.16)))
-	rush_button.add_theme_stylebox_override("hover",    _btn_mk.call(Color(0.52, 0.32, 0.08), Color(0.95, 0.74, 0.24)))
-	rush_button.add_theme_stylebox_override("pressed",  _btn_mk.call(Color(0.25, 0.14, 0.03), Color(0.60, 0.44, 0.12)))
-	rush_button.add_theme_stylebox_override("disabled", _btn_mk.call(Color(0.18, 0.14, 0.08), Color(0.38, 0.30, 0.16)))
-	vbox.add_child(rush_button)
+	var refs: Dictionary = ConstructionPanelFactoryScript.build(ui, _on_rush_pressed)
+	construction_panel = refs["panel"]
+	construction_label = refs["label"]
+	construction_bar = refs["bar"]
+	rush_button = refs["rush_button"]
 
 
 func _update_construction_ui():
