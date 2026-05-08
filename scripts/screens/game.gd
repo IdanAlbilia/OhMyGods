@@ -6,9 +6,8 @@ const CrusadeRewardsScript: GDScript = preload("res://scripts/systems/crusade_re
 const SpreadTheFaithRewardsScript: GDScript = preload("res://scripts/systems/spread_the_faith_rewards.gd")
 const RoadTilesScript: GDScript = preload("res://scripts/systems/road_tiles.gd")
 const RoadPlacementControllerScript: GDScript = preload("res://scripts/systems/road_placement_controller.gd")
-const CameraControllerScript: GDScript = preload("res://scripts/systems/camera_controller.gd")
 const CampaignNavigationControllerScript: GDScript = preload("res://scripts/systems/campaign_navigation_controller.gd")
-const BaseCampDecorationSpawnerScript: GDScript = preload("res://scripts/systems/base_camp_decoration_spawner.gd")
+const BaseCampWorldBuilderScript: GDScript = preload("res://scripts/systems/base_camp_world_builder.gd")
 const BuildingConstructionCatalogScript: GDScript = preload("res://scripts/systems/building_construction_catalog.gd")
 const BuildingPlacementRulesScript: GDScript = preload("res://scripts/systems/building_placement_rules.gd")
 const BaseCampBuildingFactoryScript: GDScript = preload("res://scripts/systems/base_camp_building_factory.gd")
@@ -383,45 +382,17 @@ func _tick_resources():
 
 # ── World ─────────────────────────────────────────────────────────────────────
 func _build_world():
-	world = Node2D.new()
-	add_child(world)
-
-	# Map background — tiled grass texture
-	var grass := TextureRect.new()
-	grass.texture      = load("res://assets/environment/Background0.png")
-	grass.stretch_mode = TextureRect.STRETCH_TILE
-	grass.size         = Vector2(MAP_WIDTH, MAP_HEIGHT)
-	grass.mouse_filter = Control.MOUSE_FILTER_IGNORE   # don't block Area2D clicks
-	world.add_child(grass)
-
-	# Camera — centered on starting area, limited to map bounds
-	camera = Camera2D.new()
-	camera.position = SHELTER_POS
-	camera.limit_left   = 0
-	camera.limit_top    = 0
-	camera.limit_right  = int(MAP_WIDTH)
-	camera.limit_bottom = int(MAP_HEIGHT)
-	add_child(camera)
-
-	camera_controller = CameraControllerScript.new()
-	camera_controller.setup(camera)
-
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 42
-
-	BaseCampDecorationSpawnerScript.scatter(
-		world,
-		rng,
+	var refs: Dictionary = BaseCampWorldBuilderScript.build(
+		self,
 		Vector2(MAP_WIDTH, MAP_HEIGHT),
 		SHELTER_POS,
-		blocked_zones
+		blocked_zones,
+		_on_believer_shelter_tapped
 	)
-
-
-	# Humble Shelter — interactive so you can tap it for capacity info
-	shelter = BaseCampBuildingFactoryScript.make(world, "shelter", SHELTER_POS, "Humble Shelter", true)
-	shelter.tapped.connect(_on_believer_shelter_tapped)
-	blocked_zones.append({"pos": SHELTER_POS, "radius": 85.0})
+	world = refs["world"]
+	camera = refs["camera"]
+	camera_controller = refs["camera_controller"]
+	shelter = refs["shelter"]
 
 
 func _show_road_hint(msg: String):
