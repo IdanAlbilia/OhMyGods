@@ -7,26 +7,20 @@ const RoadTilesScript: GDScript = preload("res://scripts/systems/road_tiles.gd")
 const RoadPlacementControllerScript: GDScript = preload("res://scripts/systems/road_placement_controller.gd")
 const CameraControllerScript: GDScript = preload("res://scripts/systems/camera_controller.gd")
 const CampaignNavigationControllerScript: GDScript = preload("res://scripts/systems/campaign_navigation_controller.gd")
+const BaseCampDecorationSpawnerScript: GDScript = preload("res://scripts/systems/base_camp_decoration_spawner.gd")
+const BuildingConstructionCatalogScript: GDScript = preload("res://scripts/systems/building_construction_catalog.gd")
+const BuildingPlacementRulesScript: GDScript = preload("res://scripts/systems/building_placement_rules.gd")
+const BaseCampBuildingFactoryScript: GDScript = preload("res://scripts/systems/base_camp_building_factory.gd")
+const RoadNavigatorScript: GDScript = preload("res://scripts/systems/road_navigator.gd")
 const TutorialCopyScript: GDScript = preload("res://scripts/ui/tutorial/tutorial_copy.gd")
 const BuildingPanelFactoryScript: GDScript = preload("res://scripts/ui/building_panel_factory.gd")
 const TopBarFactoryScript: GDScript = preload("res://scripts/ui/top_bar_factory.gd")
+const PeoplePanelFactoryScript: GDScript = preload("res://scripts/ui/people_panel_factory.gd")
 const WHEEL_POPUP_SCENE := preload("res://scenes/ui/wheel_of_faith_popup.tscn")
 const CRUSADE_RESULT_POPUP_SCENE := preload("res://scenes/ui/crusade_result_popup.tscn")
 const BUILD_MENU_SCENE := preload("res://scenes/ui/build_menu.tscn")
 const HERO_DECK_PANEL_SCENE := preload("res://scenes/ui/hero_deck_panel.tscn")
 const TEMPLE_PANEL_SCENE := preload("res://scenes/ui/temple_panel.tscn")
-const BUILDING_SCENES := {
-	"shelter": preload("res://scenes/buildings/shelter.tscn"),
-	"temple": preload("res://scenes/buildings/temple.tscn"),
-	"hall_of_devoted": preload("res://scenes/buildings/hall_of_devoted.tscn"),
-	"preacher_shelter": preload("res://scenes/buildings/preacher_shelter.tscn"),
-	"armory": preload("res://scenes/buildings/armory.tscn"),
-	"garrison": preload("res://scenes/buildings/garrison.tscn"),
-	"generals_quarters": preload("res://scenes/buildings/generals_quarters.tscn"),
-	"well": preload("res://scenes/buildings/well.tscn"),
-	"garden": preload("res://scenes/buildings/garden.tscn"),
-	"stone_pool": preload("res://scenes/buildings/stone_pool.tscn"),
-}
 const MARCUS_SCENE := preload("res://scenes/entities/marcus_character.tscn")
 
 # ── Resources ───────────────────────────────────────────────────────────────
@@ -229,15 +223,7 @@ var active_construction_type := ""
 var active_construction_timer := 0.0
 var active_construction_max   := 0.0
 
-const CONSTRUCTION_TIME        := 300.0    # temple: 5 min (prototype speed)
-const HALL_CONSTRUCTION_TIME   := 7200.0   # hall: 2 hours
-const PREACHER_SHELTER_TIME    := 3600.0   # preacher shelter: 1 hour
-const SHELTER_UPGRADE_TIME     := 1800.0   # extra believer shelter: 30 min
-const ARMORY_CONSTRUCTION_TIME   := 3600.0   # barracks: 1 hour
-const GARRISON_CONSTRUCTION_TIME := 3600.0   # garrison: 1 hour
 const TRAINING_TIME              := 1800.0   # soldier training: 30 min
-const GENERALS_QUARTERS_TIME     := 3600.0   # general's quarters: 1 hour
-const DECORATION_BUILD_TIME      := 60.0     # decorative buildings: 1 min
 const MAP_WIDTH                := 3000.0
 const MAP_HEIGHT               := 2000.0
 
@@ -416,110 +402,19 @@ func _build_world():
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 42
 
-	# Scattered trees (avoid center area)
-	_plant_trees(rng)
+	BaseCampDecorationSpawnerScript.scatter(
+		world,
+		rng,
+		Vector2(MAP_WIDTH, MAP_HEIGHT),
+		SHELTER_POS,
+		blocked_zones
+	)
 
 
 	# Humble Shelter — interactive so you can tap it for capacity info
-	shelter = _make_building("shelter", SHELTER_POS, "Humble Shelter", true)
+	shelter = BaseCampBuildingFactoryScript.make(world, "shelter", SHELTER_POS, "Humble Shelter", true)
 	shelter.tapped.connect(_on_believer_shelter_tapped)
 	blocked_zones.append({"pos": SHELTER_POS, "radius": 85.0})
-
-
-func _plant_trees(rng: RandomNumberGenerator):
-	var placed: Array = []
-	var attempts := 0
-	# Scatter trees (mix of Comp15 and Comp16)
-	while placed.size() < 55 and attempts < 2000:
-		attempts += 1
-		var tp := Vector2(rng.randf_range(80, MAP_WIDTH - 80), rng.randf_range(80, MAP_HEIGHT - 80))
-		if tp.distance_to(SHELTER_POS) < 320:
-			continue
-		var too_close := false
-		for p in placed:
-			if tp.distance_to(p) < 110:
-				too_close = true
-				break
-		if too_close:
-			continue
-		placed.append(tp)
-		_place_tree_sprite(tp, rng)
-		blocked_zones.append({"pos": tp, "radius": 70.0})
-	# Scatter rocks (Comp17)
-	var rock_placed: Array = []
-	attempts = 0
-	while rock_placed.size() < 18 and attempts < 1000:
-		attempts += 1
-		var rp := Vector2(rng.randf_range(80, MAP_WIDTH - 80), rng.randf_range(80, MAP_HEIGHT - 80))
-		if rp.distance_to(SHELTER_POS) < 300:
-			continue
-		var too_close := false
-		for p in placed:
-			if rp.distance_to(p) < 80:
-				too_close = true
-				break
-		for p in rock_placed:
-			if rp.distance_to(p) < 90:
-				too_close = true
-				break
-		if too_close:
-			continue
-		rock_placed.append(rp)
-		_place_rock_sprite(rp, rng)
-		blocked_zones.append({"pos": rp, "radius": 50.0})
-
-
-func _place_tree_sprite(pos: Vector2, rng: RandomNumberGenerator):
-	var spr := Sprite2D.new()
-	spr.texture = load("res://assets/environment/Comp15.png" if rng.randi() % 2 == 0 else "res://assets/environment/Comp16.png")
-	var sc: float = rng.randf_range(0.26, 0.36)
-	spr.scale = Vector2(sc, sc)
-	spr.flip_h = rng.randi() % 2 == 1
-	spr.position = pos
-	world.add_child(spr)
-
-
-func _place_rock_sprite(pos: Vector2, rng: RandomNumberGenerator):
-	var spr := Sprite2D.new()
-	spr.texture = load("res://assets/environment/Comp17.png")
-	var sc: float = rng.randf_range(0.18, 0.26)
-	spr.scale = Vector2(sc, sc)
-	spr.flip_h = rng.randi() % 2 == 1
-	spr.position = pos
-	world.add_child(spr)
-
-
-func _road_corner(from_pos: Vector2, to_pos: Vector2) -> Vector2:
-	return Vector2(from_pos.x, to_pos.y)
-
-
-func _walk_via_road(node: CharacterBody2D, from_pos: Vector2, to_pos: Vector2, on_arrive: Callable):
-	# Mirror RoadSegmentDrawer._ready() exactly so characters follow the visual road
-	if to_pos.y < from_pos.y - 20.0:
-		# Destination is above — exit south first, then horizontal, then north (same as visual road)
-		var road_y := from_pos.y + 60.0
-		var p1 := Vector2(from_pos.x, road_y)
-		var p2 := Vector2(to_pos.x, road_y)
-		node.walk_to(p1)
-		node.reached_forced_target.connect(func():
-			node.walk_to(p2)
-			node.reached_forced_target.connect(func():
-				node.walk_to(to_pos)
-				node.reached_forced_target.connect(on_arrive, CONNECT_ONE_SHOT)
-			, CONNECT_ONE_SHOT)
-		, CONNECT_ONE_SHOT)
-	else:
-		# Destination at same level or below — vertical-first L
-		var corner := Vector2(from_pos.x, to_pos.y)
-		if corner.distance_to(to_pos) < 4.0 or corner.distance_to(from_pos) < 4.0:
-			node.walk_to(to_pos)
-			node.reached_forced_target.connect(on_arrive, CONNECT_ONE_SHOT)
-		else:
-			node.walk_to(corner)
-			node.reached_forced_target.connect(func():
-				node.walk_to(to_pos)
-				node.reached_forced_target.connect(on_arrive, CONNECT_ONE_SHOT)
-			, CONNECT_ONE_SHOT)
 
 
 func _show_road_hint(msg: String):
@@ -529,20 +424,6 @@ func _show_road_hint(msg: String):
 	get_tree().create_timer(5.0).timeout.connect(func():
 		if tutorial_label and tutorial_label.text == msg:
 			tutorial_label.text = "")
-
-
-
-func _make_building(type: String, pos: Vector2, label: String, interactive: bool) -> StaticBody2D:
-	var scene: PackedScene = BUILDING_SCENES.get(type, BUILDING_SCENES["shelter"])
-	var b: StaticBody2D = scene.instantiate()
-	b.building_type  = type
-	b.building_label = label
-	b.is_interactive = interactive
-	b.position       = pos
-	world.add_child(b)
-
-	return b
-
 
 # ── Believers ────────────────────────────────────────────────────────────────
 func _spawn_believers():
@@ -601,43 +482,11 @@ func _build_top_bar(ui: CanvasLayer):
 	campaign_chip = top_bar["campaign_chip"]
 	return_mission_chip = top_bar["return_mission_chip"]
 
-	_build_people_panel(ui)
+	var people_refs: Dictionary = PeoplePanelFactoryScript.build(ui)
+	people_panel = people_refs["panel"]
+	people_detail_label = people_refs["detail_label"]
 
 	_refresh_resource_labels()
-
-
-func _build_people_panel(ui: CanvasLayer):
-	people_panel = PanelContainer.new()
-	people_panel.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	people_panel.anchor_left   = 0.0
-	people_panel.anchor_right  = 0.0
-	people_panel.anchor_top    = 0.0
-	people_panel.anchor_bottom = 0.0
-	people_panel.offset_left   = 6
-	people_panel.offset_top    = 58
-	people_panel.offset_right  = 220
-	people_panel.offset_bottom = 130
-	people_panel.visible = false
-	ui.add_child(people_panel)
-
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 6)
-	people_panel.add_child(vbox)
-
-	var title := Label.new()
-	title.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	title.text = "Your People"
-	title.add_theme_font_size_override("font_size", 14)
-	title.add_theme_color_override("font_color", Color(0.95, 0.85, 0.40))
-	vbox.add_child(title)
-
-	vbox.add_child(HSeparator.new())
-
-	people_detail_label = Label.new()
-	people_detail_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	people_detail_label.add_theme_font_size_override("font_size", 13)
-	people_detail_label.add_theme_color_override("font_color", Color(0.90, 0.90, 0.90))
-	vbox.add_child(people_detail_label)
 
 
 func _on_people_chip_input(event: InputEvent):
@@ -1366,13 +1215,13 @@ func _start_prayer_session(shelter_idx: int, home_pos: Vector2, wanted: int,
 		var target := temple.position + Vector2(spread_x, 48)
 		if shelter_idx == 0:
 			# Step 1: walk to shelter exit (clears building collision)
-			# Step 2: _walk_via_road handles EXIT_SOUTH or L-corner to temple
+			# Step 2: RoadNavigator handles EXIT_SOUTH or L-corner to temple
 			var shelter_exit := home_pos
 			var _b: CharacterBody2D = b
 			var _target: Vector2 = target
 			b.walk_to(shelter_exit)
 			b.reached_forced_target.connect(func():
-				_walk_via_road(_b, shelter_exit, _target, func(): pass)
+				RoadNavigatorScript.walk_via_road(_b, shelter_exit, _target, func(): pass)
 			, CONNECT_ONE_SHOT)
 		else:
 			# Extra shelter → main shelter door → temple
@@ -1381,8 +1230,8 @@ func _start_prayer_session(shelter_idx: int, home_pos: Vector2, wanted: int,
 			var _target: Vector2 = target
 			b.walk_to(extra_exit)
 			b.reached_forced_target.connect(func():
-				_walk_via_road(_b, extra_exit, shelter_door, func():
-					_walk_via_road(_b, shelter_door, _target, func(): pass)
+				RoadNavigatorScript.walk_via_road(_b, extra_exit, shelter_door, func():
+					RoadNavigatorScript.walk_via_road(_b, shelter_door, _target, func(): pass)
 				)
 			, CONNECT_ONE_SHOT)
 		sent += 1
@@ -1391,11 +1240,11 @@ func _start_prayer_session(shelter_idx: int, home_pos: Vector2, wanted: int,
 	var path_dist: float
 	if shelter_idx == 0:
 		var door_pos: Vector2 = home_pos + Vector2(0, 40)
-		var rc := _road_corner(door_pos, temple_center)
+		var rc: Vector2 = RoadNavigatorScript.corner(door_pos, temple_center)
 		path_dist = door_pos.distance_to(rc) + rc.distance_to(temple_center)
 	else:
 		var extra_door: Vector2 = home_pos + Vector2(0, 48)
-		var rc2 := _road_corner(shelter_door, temple_center)
+		var rc2: Vector2 = RoadNavigatorScript.corner(shelter_door, temple_center)
 		path_dist = extra_door.distance_to(shelter_door) + shelter_door.distance_to(rc2) + rc2.distance_to(temple_center)
 	var walk_time := path_dist / 35.0 + 2.0
 	var nodes_ref := nodes
@@ -1482,12 +1331,12 @@ func _complete_prayer_session(idx: int):
 		var home_offset: Vector2 = Vector2(randf_range(-30, 30), randf_range(-15, 15))
 		var dest: Vector2 = sess.home_pos + home_offset
 		if sess.shelter_idx == 0:
-			_walk_via_road(b, sdoor, dest, func(): b.start_wandering(dest))
+			RoadNavigatorScript.walk_via_road(b, sdoor, dest, func(): b.start_wandering(dest))
 		else:
 			# temple → main shelter door → extra shelter
 			var temple_exit: Vector2 = temple.position + Vector2(0, 48)
-			_walk_via_road(b, temple_exit, sdoor, func():
-				_walk_via_road(b, sdoor, dest, func(): b.start_wandering(dest))
+			RoadNavigatorScript.walk_via_road(b, temple_exit, sdoor, func():
+				RoadNavigatorScript.walk_via_road(b, sdoor, dest, func(): b.start_wandering(dest))
 			)
 	# Remove this session's temple row
 	if is_instance_valid(sess.row):
@@ -2117,13 +1966,7 @@ func _try_start_placement(type: String, cost: int):
 func _start_placement(type: String):
 	placing_building = true
 	placing_type = type
-	ghost_node = BUILDING_SCENES.get(type, BUILDING_SCENES["shelter"]).instantiate()
-	ghost_node.building_type    = type
-	ghost_node.building_label   = ""
-	ghost_node.is_interactive   = false
-	ghost_node.modulate         = Color(0.60, 1.0, 0.60, 0.55)
-	ghost_node.position         = get_viewport().get_mouse_position()
-	world.add_child(ghost_node)
+	ghost_node = BaseCampBuildingFactoryScript.make_ghost(world, type, get_viewport().get_mouse_position())
 
 	if type == "temple" and tut_step == TutStep.BUILD_TEMPLE:
 		tut_step = TutStep.PLACE_TEMPLE
@@ -2159,21 +2002,10 @@ func _place_building(pos: Vector2):
 		ghost_node.queue_free()
 		ghost_node = null
 
-	var label: String
-	var max_time: float
-	match type:
-		"temple":           label = "Small Temple";        max_time = CONSTRUCTION_TIME
-		"hall_of_devoted":  label = "Hall of the Devoted"; max_time = HALL_CONSTRUCTION_TIME
-		"preacher_shelter": label = "Preacher Shelter";    max_time = PREACHER_SHELTER_TIME
-		"shelter":          label = "Believer Shelter";    max_time = SHELTER_UPGRADE_TIME
-		"armory":           label = "Barracks";            max_time = ARMORY_CONSTRUCTION_TIME
-		"garrison":         label = "Garrison";            max_time = GARRISON_CONSTRUCTION_TIME
-		"generals_quarters": label = "General's Quarters"; max_time = GENERALS_QUARTERS_TIME
-		"well":             label = "Wishing Well";        max_time = DECORATION_BUILD_TIME
-		"garden":           label = "Pumpkin Garden";      max_time = DECORATION_BUILD_TIME
-		"stone_pool":       label = "Stone Pool";          max_time = DECORATION_BUILD_TIME
+	var label: String = BuildingConstructionCatalogScript.get_label(type)
+	var max_time: float = BuildingConstructionCatalogScript.get_time(type)
 
-	var b := _make_building(type, pos, label, false)
+	var b: StaticBody2D = BaseCampBuildingFactoryScript.make(world, type, pos, label, false)
 	b.set_meta("under_construction", true)
 	b.queue_redraw()
 
@@ -2232,7 +2064,7 @@ func _complete_construction():
 			# If a preacher was waiting at the hall, send them over now
 			if preacher_waiting_at_hall and converting_node != null:
 				preacher_waiting_at_hall = false
-				_walk_via_road(converting_node, hall_of_devoted.position + Vector2(0, 20), preacher_shelter_building.position + Vector2(randf_range(-15, 15), 48), _on_preacher_arrived_at_shelter)
+				RoadNavigatorScript.walk_via_road(converting_node, hall_of_devoted.position + Vector2(0, 20), preacher_shelter_building.position + Vector2(randf_range(-15, 15), 48), _on_preacher_arrived_at_shelter)
 		"armory":
 			armory_built = true
 			b.tapped.connect(_on_armory_tapped)
@@ -2245,7 +2077,7 @@ func _complete_construction():
 			# If a soldier was waiting at the barracks, send them over now
 			if soldier_waiting_at_armory and training_node != null:
 				soldier_waiting_at_armory = false
-				_walk_via_road(training_node, armory.position + Vector2(0, 20), garrison.position + Vector2(randf_range(-15, 15), 48), _on_soldier_arrived_at_garrison)
+				RoadNavigatorScript.walk_via_road(training_node, armory.position + Vector2(0, 20), garrison.position + Vector2(randf_range(-15, 15), 48), _on_soldier_arrived_at_garrison)
 		"generals_quarters":
 			generals_quarters_built = true
 			generals_quarters = b
@@ -2333,7 +2165,7 @@ func _on_convert_pressed():
 	converting = true
 	conversion_timer = CONVERSION_TIME
 	# Walk to hall entrance via road
-	_walk_via_road(chosen, SHELTER_POS + Vector2(0, 40), hall_of_devoted.position + Vector2(0, 20), _on_believer_arrived_at_hall)
+	RoadNavigatorScript.walk_via_road(chosen, SHELTER_POS + Vector2(0, 40), hall_of_devoted.position + Vector2(0, 20), _on_believer_arrived_at_hall)
 	_update_conversion_ui()
 
 
@@ -2368,7 +2200,7 @@ func _complete_conversion():
 			# Shelter already exists — send preacher there via road
 			converting_node.visible = true
 			converting_node.needs_shelter = false
-			_walk_via_road(converting_node, hall_of_devoted.position + Vector2(0, 20), preacher_shelter_building.position + Vector2(randf_range(-15, 15), 48), _on_preacher_arrived_at_shelter)
+			RoadNavigatorScript.walk_via_road(converting_node, hall_of_devoted.position + Vector2(0, 20), preacher_shelter_building.position + Vector2(randf_range(-15, 15), 48), _on_preacher_arrived_at_shelter)
 		else:
 			# No shelter yet — stand at hall door and wait
 			preacher_waiting_at_hall = true
@@ -2483,7 +2315,7 @@ func _complete_spread():
 	for p in spreading_nodes:
 		if is_instance_valid(p) and preacher_shelter_building != null:
 			p.visible = true
-			_walk_via_road(p, hall_of_devoted.position + Vector2(0, 20),
+			RoadNavigatorScript.walk_via_road(p, hall_of_devoted.position + Vector2(0, 20),
 				preacher_shelter_building.position + Vector2(randf_range(-15, 15), 48),
 				func(): pass)
 	spreading_nodes.clear()
@@ -2596,7 +2428,7 @@ func _on_train_pressed():
 	var armory_door  := armory.position + Vector2(0, 20)
 	chosen.walk_to(shelter_exit)
 	chosen.reached_forced_target.connect(func():
-		_walk_via_road(chosen, shelter_exit, armory_door, _on_believer_arrived_at_armory)
+		RoadNavigatorScript.walk_via_road(chosen, shelter_exit, armory_door, _on_believer_arrived_at_armory)
 	, CONNECT_ONE_SHOT)
 	_update_training_ui()
 
@@ -2624,7 +2456,7 @@ func _complete_training():
 		soldiers.append(training_node)
 		if garrison_built and garrison != null:
 			training_node.visible = true
-			_walk_via_road(training_node, armory.position + Vector2(0, 20), garrison.position + Vector2(randf_range(-15, 15), 48), _on_soldier_arrived_at_garrison)
+			RoadNavigatorScript.walk_via_road(training_node, armory.position + Vector2(0, 20), garrison.position + Vector2(randf_range(-15, 15), 48), _on_soldier_arrived_at_garrison)
 		else:
 			# No garrison yet — stand at barracks door and wait
 			soldier_waiting_at_armory = true
@@ -2737,20 +2569,13 @@ func _input(event: InputEvent):
 
 	if mb.button_index == MOUSE_BUTTON_LEFT:
 		var pos := get_viewport().get_canvas_transform().affine_inverse() * get_viewport().get_mouse_position()
-		if _can_place_here(pos):
+		if BuildingPlacementRulesScript.can_place_at(pos, blocked_zones):
 			get_viewport().set_input_as_handled()
 			_place_building(pos)
 		else:
 			# Warn the player, then restore after 2 seconds
 			tutorial_label.text = "Can't build there! Too close to a tree or building."
 			get_tree().create_timer(2.0).timeout.connect(_update_tutorial)
-
-
-func _can_place_here(pos: Vector2) -> bool:
-	for zone in blocked_zones:
-		if pos.distance_to(zone["pos"]) < zone["radius"]:
-			return false
-	return true
 
 
 func _on_wheel_chip_input(event: InputEvent):
