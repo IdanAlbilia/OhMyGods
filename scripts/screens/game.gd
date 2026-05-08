@@ -3,6 +3,7 @@ extends Node
 const BaseCampStateScript: GDScript = preload("res://scripts/state/base_camp_state.gd")
 const WheelOfFaithScript: GDScript = preload("res://scripts/systems/wheel_of_faith.gd")
 const CrusadeRewardsScript: GDScript = preload("res://scripts/systems/crusade_rewards.gd")
+const SpreadTheFaithRewardsScript: GDScript = preload("res://scripts/systems/spread_the_faith_rewards.gd")
 const RoadTilesScript: GDScript = preload("res://scripts/systems/road_tiles.gd")
 const RoadPlacementControllerScript: GDScript = preload("res://scripts/systems/road_placement_controller.gd")
 const CameraControllerScript: GDScript = preload("res://scripts/systems/camera_controller.gd")
@@ -1557,22 +1558,15 @@ func _complete_spread():
 	spread_progress_container.visible = false
 	spread_go_btn.visible = true
 
-	# Simulate how many believers each preacher brings
-	var brought := 0
-	for i in range(spread_sent):
-		var roll := randf()
-		if roll < 0.20:
-			brought += 0       # 20% — nobody this time
-		elif roll < 0.60:
-			brought += 1       # 40% — 1 convert
-		elif roll < 0.90:
-			brought += 2       # 30% — 2 converts
-		else:
-			brought += 3       # 10% — inspired crowd
-
-	# Cap by available shelter capacity
-	var available := believer_shelter_count * 5 - believers_count
-	var actually_joined := mini(brought, available)
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	var result: Dictionary = SpreadTheFaithRewardsScript.resolve(
+		rng,
+		spread_sent,
+		believer_shelter_count * 5 - believers_count
+	)
+	var actually_joined: int = result.joined
+	var start_count: int = believers_count
 	believers_count += actually_joined
 	_refresh_resource_labels()
 
@@ -1587,39 +1581,11 @@ func _complete_spread():
 				func(): pass)
 	spreading_nodes.clear()
 
-	# Build result message
-	var result := ""
-	if actually_joined <= 0 and brought <= 0:
-		result = "The crowd was unmoved this time...\nYour preachers return to rest."
-	elif actually_joined < brought:
-		result = "%d soul%s wished to join, but your shelters\nare full! Build more to welcome them.\n%d joined anyway." % [
-			brought, "s" if brought > 1 else "",
-			actually_joined]
-	else:
-		var s := "s" if actually_joined > 1 else ""
-		result = "%d new soul%s have joined your faith!\nThey make their way to your shelter." % [actually_joined, s]
-	spread_result_label.text = result
+	spread_result_label.text = result.text
 	spread_result_popup.visible = true
 
-	# Spawn the new believers at the correct shelter based on slot index
 	if actually_joined > 0:
-		var rng := RandomNumberGenerator.new()
-		rng.randomize()
-		var start_count: int = believers_count - actually_joined
-		for i in range(actually_joined):
-			var b: CharacterBody2D = load("res://scenes/believer.tscn").instantiate()
-			var shelter_idx: int = (start_count + i) / 5
-			var spawn_pos: Vector2
-			if shelter_idx == 0:
-				spawn_pos = SHELTER_POS
-			elif shelter_idx - 1 < extra_shelter_buildings.size():
-				spawn_pos = extra_shelter_buildings[shelter_idx - 1].position
-			else:
-				spawn_pos = SHELTER_POS
-			var offset := Vector2(rng.randf_range(-35, 35), rng.randf_range(-8, 8))
-			world.add_child(b)
-			b.setup(spawn_pos + Vector2(0, 80) + offset, believers.size())
-			believers.append(b)
+		BaseCampStateScript.spawn_joined_believers(self, actually_joined, start_count)
 
 
 func _refresh_preacher_label():
