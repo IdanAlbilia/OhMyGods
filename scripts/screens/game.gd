@@ -19,6 +19,7 @@ const ConstructionPanelFactoryScript: GDScript = preload("res://scripts/ui/const
 const TimedActionPanelFactoryScript: GDScript = preload("res://scripts/ui/timed_action_panel_factory.gd")
 const BaseCampHudFactoryScript: GDScript = preload("res://scripts/ui/base_camp_hud_factory.gd")
 const ShelterPanelFactoryScript: GDScript = preload("res://scripts/ui/shelter_panel_factory.gd")
+const MissionPanelFactoryScript: GDScript = preload("res://scripts/ui/mission_panel_factory.gd")
 const TopBarFactoryScript: GDScript = preload("res://scripts/ui/top_bar_factory.gd")
 const PeoplePanelFactoryScript: GDScript = preload("res://scripts/ui/people_panel_factory.gd")
 const WHEEL_POPUP_SCENE := preload("res://scenes/ui/wheel_of_faith_popup.tscn")
@@ -642,158 +643,25 @@ func _build_training_panel(ui: CanvasLayer):
 
 
 func _build_preacher_shelter_panel(ui: CanvasLayer):
-	preacher_shelter_panel = BuildingPanelFactoryScript.make_panel(ui, Color(0.30, 0.75, 0.72), "Preacher Shelter")
-	var body: VBoxContainer = BuildingPanelFactoryScript.panel_body(preacher_shelter_panel)
-
-	shelter_preacher_label = BuildingPanelFactoryScript.count_row(body, "Preachers", Color(0.30, 0.82, 0.75))
-
-	BuildingPanelFactoryScript.panel_sep(body, Color(0.30, 0.75, 0.72))
-
-	# ── Go button ──
-	spread_go_btn = Button.new()
-	spread_go_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	spread_go_btn.text = "✉  Spread the Faith   (2 hr)"
-	spread_go_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	BuildingPanelFactoryScript.style_action_btn(spread_go_btn, Color(0.30, 0.75, 0.72))
-	spread_go_btn.pressed.connect(_on_spread_pressed)
-	body.add_child(spread_go_btn)
-
-	# ── Selector row (hidden until Go tapped) ──
-	spread_selector_row = HBoxContainer.new()
-	spread_selector_row.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	spread_selector_row.visible = false
-	body.add_child(spread_selector_row)
-
-	var minus_btn := Button.new()
-	minus_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	minus_btn.text = "−"
-	minus_btn.custom_minimum_size = Vector2(30, 0)
-	minus_btn.pressed.connect(func():
-		spread_selector_count = max(1, spread_selector_count - 1)
-		_update_spread_selector_label())
-	spread_selector_row.add_child(minus_btn)
-
-	spread_selector_label = Label.new()
-	spread_selector_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	spread_selector_label.text_direction = Control.TEXT_DIRECTION_LTR
-	spread_selector_label.text = "1 preacher"
-	spread_selector_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	spread_selector_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	spread_selector_label.add_theme_font_size_override("font_size", 13)
-	spread_selector_row.add_child(spread_selector_label)
-
-	var plus_btn := Button.new()
-	plus_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	plus_btn.text = "+"
-	plus_btn.custom_minimum_size = Vector2(30, 0)
-	plus_btn.pressed.connect(func():
-		spread_selector_count = min(preachers_in_shelter, spread_selector_count + 1)
-		_update_spread_selector_label())
-	spread_selector_row.add_child(plus_btn)
-
-	var confirm_btn := Button.new()
-	confirm_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	confirm_btn.text = "Send →"
-	BuildingPanelFactoryScript.style_action_btn(confirm_btn, Color(0.30, 0.75, 0.72))
-	confirm_btn.pressed.connect(_on_spread_confirm_pressed)
-	spread_selector_row.add_child(confirm_btn)
-
-	# ── Progress area (hidden until mission started) ──
-	spread_progress_container = VBoxContainer.new()
-	spread_progress_container.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	spread_progress_container.visible = false
-	body.add_child(spread_progress_container)
-
-	spread_label = Label.new()
-	spread_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	spread_label.text = "Spreading the faith..."
-	spread_label.add_theme_font_size_override("font_size", 12)
-	spread_label.add_theme_color_override("font_color", Color(0.30, 0.90, 0.80))
-	spread_progress_container.add_child(spread_label)
-
-	# Progress bar background + fill
-	var bar_bg := ColorRect.new()
-	bar_bg.color = Color(0.10, 0.08, 0.16)
-	bar_bg.custom_minimum_size = Vector2(0, 8)
-	spread_progress_container.add_child(bar_bg)
-
-	spread_bar = ColorRect.new()
-	spread_bar.color = Color(0.30, 0.82, 0.75)
-	spread_bar.anchor_top    = 0.0
-	spread_bar.anchor_bottom = 1.0
-	spread_bar.anchor_left   = 0.0
-	spread_bar.anchor_right  = 0.0
-	bar_bg.add_child(spread_bar)
-
-	spread_rush_btn = Button.new()
-	spread_rush_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	spread_rush_btn.text = "⚡ Rush  (1 Faith = -10 min)"
-	spread_rush_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	BuildingPanelFactoryScript.style_action_btn(spread_rush_btn, Color(0.72, 0.55, 1.00))
-	spread_rush_btn.pressed.connect(_on_spread_rush_pressed)
-	spread_progress_container.add_child(spread_rush_btn)
-
-	BuildingPanelFactoryScript.panel_sep(body, Color(0.30, 0.75, 0.72))
-
-	var upg := Button.new()
-	upg.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	upg.text = "⬆  Upgrade Building   (Coming Soon)"
-	upg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	upg.disabled = true
-	BuildingPanelFactoryScript.style_action_btn(upg, Color(0.50, 0.48, 0.44))
-	body.add_child(upg)
-
-	# ── Mission result popup (CanvasLayer level) ──
-	var overlay := ColorRect.new()
-	overlay.color = Color(0, 0, 0, 0.65)
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	overlay.visible = false
-	ui.add_child(overlay)
-	spread_result_popup = overlay
-
-	var result_panel := PanelContainer.new()
-	result_panel.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	var rps := StyleBoxFlat.new()
-	rps.bg_color     = Color(0.08, 0.06, 0.14)
-	rps.border_color = Color(0.30, 0.80, 0.75)
-	rps.set_border_width_all(2)
-	rps.set_corner_radius_all(12)
-	rps.content_margin_left = 28; rps.content_margin_right  = 28
-	rps.content_margin_top  = 22; rps.content_margin_bottom = 22
-	result_panel.add_theme_stylebox_override("panel", rps)
-	result_panel.set_anchors_preset(Control.PRESET_CENTER)
-	result_panel.offset_left = -220; result_panel.offset_right  = 220
-	result_panel.offset_top  = -110; result_panel.offset_bottom = 110
-	overlay.add_child(result_panel)
-
-	var vb := VBoxContainer.new()
-	vb.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	vb.alignment = BoxContainer.ALIGNMENT_CENTER
-	vb.add_theme_constant_override("separation", 14)
-	result_panel.add_child(vb)
-
-	var title := Label.new()
-	title.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	title.text = "✉  Mission Complete!"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 17)
-	title.add_theme_color_override("font_color", Color(0.30, 0.90, 0.80))
-	vb.add_child(title)
-
-	spread_result_label = Label.new()
-	spread_result_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	spread_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	spread_result_label.add_theme_font_size_override("font_size", 14)
-	spread_result_label.add_theme_color_override("font_color", Color(0.92, 0.90, 0.98))
-	vb.add_child(spread_result_label)
-
-	var ok_btn := Button.new()
-	ok_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	ok_btn.text = "Praise be!"
-	ok_btn.pressed.connect(func(): overlay.visible = false)
-	BuildingPanelFactoryScript.style_action_btn(ok_btn, Color(0.30, 0.75, 0.72))
-	vb.add_child(ok_btn)
+	var refs: Dictionary = MissionPanelFactoryScript.build_spread_panel(
+		ui,
+		_on_spread_pressed,
+		_on_spread_selector_minus_pressed,
+		_on_spread_selector_plus_pressed,
+		_on_spread_confirm_pressed,
+		_on_spread_rush_pressed
+	)
+	preacher_shelter_panel = refs["panel"]
+	shelter_preacher_label = refs["count_label"]
+	spread_go_btn = refs["go_button"]
+	spread_selector_row = refs["selector_row"]
+	spread_selector_label = refs["selector_label"]
+	spread_progress_container = refs["progress_container"]
+	spread_label = refs["progress_label"]
+	spread_bar = refs["progress_bar"]
+	spread_rush_btn = refs["rush_button"]
+	spread_result_popup = refs["result_popup"]
+	spread_result_label = refs["result_label"]
 
 
 func _build_shelter_panel(ui: CanvasLayer):
@@ -1122,116 +990,24 @@ func _build_temple_panel(ui: CanvasLayer):
 
 
 func _build_garrison_panel(ui: CanvasLayer):
-	garrison_panel = BuildingPanelFactoryScript.make_panel(ui, Color(0.75, 0.22, 0.14), "Garrison")
-	var body: VBoxContainer = BuildingPanelFactoryScript.panel_body(garrison_panel)
-
-	garrison_soldier_label = BuildingPanelFactoryScript.count_row(body, "Soldiers housed", Color(0.90, 0.55, 0.18))
-
-	BuildingPanelFactoryScript.panel_sep(body, Color(0.75, 0.22, 0.14))
-
-	# ── Go on a Crusade button ──
-	crusade_go_btn = Button.new()
-	crusade_go_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	crusade_go_btn.text = "⚔  Go on a Crusade   (2 hr)"
-	crusade_go_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	BuildingPanelFactoryScript.style_action_btn(crusade_go_btn, Color(0.75, 0.22, 0.14))
-	crusade_go_btn.pressed.connect(_on_crusade_pressed)
-	body.add_child(crusade_go_btn)
-
-	# ── Selector row (hidden until button tapped) ──
-	crusade_selector_row = HBoxContainer.new()
-	crusade_selector_row.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	crusade_selector_row.add_theme_constant_override("separation", 6)
-	crusade_selector_row.visible = false
-	body.add_child(crusade_selector_row)
-
-	var minus_btn := Button.new()
-	minus_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	minus_btn.text = "−"
-	minus_btn.custom_minimum_size = Vector2(32, 0)
-	minus_btn.pressed.connect(func():
-		crusade_selector_count = max(1, crusade_selector_count - 1)
-		_update_crusade_selector_label())
-	crusade_selector_row.add_child(minus_btn)
-
-	crusade_selector_label = Label.new()
-	crusade_selector_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	crusade_selector_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	crusade_selector_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	crusade_selector_label.add_theme_font_size_override("font_size", 13)
-	crusade_selector_row.add_child(crusade_selector_label)
-
-	var plus_btn := Button.new()
-	plus_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	plus_btn.text = "+"
-	plus_btn.custom_minimum_size = Vector2(32, 0)
-	plus_btn.pressed.connect(func():
-		crusade_selector_count = min(soldiers_in_garrison, crusade_selector_count + 1)
-		_update_crusade_selector_label())
-	crusade_selector_row.add_child(plus_btn)
-
-	var send_btn := Button.new()
-	send_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	send_btn.text = "March →"
-	BuildingPanelFactoryScript.style_action_btn(send_btn, Color(0.75, 0.22, 0.14))
-	send_btn.pressed.connect(_on_crusade_confirm_pressed)
-	crusade_selector_row.add_child(send_btn)
-
-	# ── Bring Marcus toggle (hidden until he's available) ──
-	crusade_bring_marcus_btn = Button.new()
-	crusade_bring_marcus_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	crusade_bring_marcus_btn.text = "⚔ Bring Marcus as Leader"
-	crusade_bring_marcus_btn.toggle_mode = true
-	crusade_bring_marcus_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	crusade_bring_marcus_btn.visible = false
-	BuildingPanelFactoryScript.style_action_btn(crusade_bring_marcus_btn, Color(0.80, 0.55, 0.10))
-	crusade_selector_row.get_parent().add_child(crusade_bring_marcus_btn)   # sibling of selector_row, inside body
-
-	# ── Progress area (hidden until mission started) ──
-	crusade_progress_container = VBoxContainer.new()
-	crusade_progress_container.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	crusade_progress_container.add_theme_constant_override("separation", 6)
-	crusade_progress_container.visible = false
-	body.add_child(crusade_progress_container)
-
-	crusade_timer_label = Label.new()
-	crusade_timer_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	crusade_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	crusade_timer_label.add_theme_font_size_override("font_size", 13)
-	crusade_timer_label.add_theme_color_override("font_color", Color(0.92, 0.90, 0.98))
-	crusade_progress_container.add_child(crusade_timer_label)
-
-	var bar_bg := ColorRect.new()
-	bar_bg.color = Color(0.18, 0.08, 0.08)
-	bar_bg.custom_minimum_size = Vector2(0, 12)
-	bar_bg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	crusade_progress_container.add_child(bar_bg)
-
-	crusade_bar = ColorRect.new()
-	crusade_bar.color = Color(0.85, 0.25, 0.10)
-	crusade_bar.anchor_top    = 0.0
-	crusade_bar.anchor_bottom = 1.0
-	crusade_bar.anchor_left   = 0.0
-	crusade_bar.anchor_right  = 0.0
-	bar_bg.add_child(crusade_bar)
-
-	crusade_rush_btn = Button.new()
-	crusade_rush_btn.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	crusade_rush_btn.text = "⚡ Rush  (1 Faith = -10 min)"
-	crusade_rush_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	BuildingPanelFactoryScript.style_action_btn(crusade_rush_btn, Color(0.72, 0.55, 1.00))
-	crusade_rush_btn.pressed.connect(_on_crusade_rush_pressed)
-	crusade_progress_container.add_child(crusade_rush_btn)
-
-	BuildingPanelFactoryScript.panel_sep(body, Color(0.75, 0.22, 0.14))
-
-	var upg := Button.new()
-	upg.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	upg.text = "⬆  Upgrade Building   (Coming Soon)"
-	upg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	upg.disabled = true
-	BuildingPanelFactoryScript.style_action_btn(upg, Color(0.50, 0.48, 0.44))
-	body.add_child(upg)
+	var refs: Dictionary = MissionPanelFactoryScript.build_crusade_panel(
+		ui,
+		_on_crusade_pressed,
+		_on_crusade_selector_minus_pressed,
+		_on_crusade_selector_plus_pressed,
+		_on_crusade_confirm_pressed,
+		_on_crusade_rush_pressed
+	)
+	garrison_panel = refs["panel"]
+	garrison_soldier_label = refs["count_label"]
+	crusade_go_btn = refs["go_button"]
+	crusade_selector_row = refs["selector_row"]
+	crusade_selector_label = refs["selector_label"]
+	crusade_bring_marcus_btn = refs["marcus_button"]
+	crusade_progress_container = refs["progress_container"]
+	crusade_timer_label = refs["progress_label"]
+	crusade_bar = refs["progress_bar"]
+	crusade_rush_btn = refs["rush_button"]
 
 
 func _build_tutorial_panel(ui: CanvasLayer):
@@ -1713,6 +1489,16 @@ func _on_spread_pressed():
 	spread_selector_row.visible = true
 
 
+func _on_spread_selector_minus_pressed():
+	spread_selector_count = max(1, spread_selector_count - 1)
+	_update_spread_selector_label()
+
+
+func _on_spread_selector_plus_pressed():
+	spread_selector_count = min(preachers_in_shelter, spread_selector_count + 1)
+	_update_spread_selector_label()
+
+
 func _update_spread_selector_label():
 	spread_selector_label.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	spread_selector_label.text_direction = Control.TEXT_DIRECTION_LTR
@@ -2125,6 +1911,16 @@ func _on_crusade_pressed():
 	if crusade_bring_marcus_btn != null:
 		crusade_bring_marcus_btn.visible = generals_quarters_built and marcus_obtained and not marcus_leading_crusade
 		crusade_bring_marcus_btn.button_pressed = false
+
+
+func _on_crusade_selector_minus_pressed():
+	crusade_selector_count = max(1, crusade_selector_count - 1)
+	_update_crusade_selector_label()
+
+
+func _on_crusade_selector_plus_pressed():
+	crusade_selector_count = min(soldiers_in_garrison, crusade_selector_count + 1)
+	_update_crusade_selector_label()
 
 
 func _update_crusade_selector_label():
