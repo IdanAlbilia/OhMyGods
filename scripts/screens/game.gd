@@ -455,14 +455,6 @@ func _build_ui():
 		"temple_panel": temple_panel,
 	})
 
-	resource_display = BaseCampResourceDisplayScript.new()
-	resource_display.setup({
-		"gold_label": gold_label,
-		"faith_label": faith_label,
-		"people_label": believers_label,
-		"people_panel": people_panel,
-		"people_detail_label": people_detail_label,
-	})
 
 
 func _build_top_bar(ui: CanvasLayer):
@@ -487,6 +479,15 @@ func _build_top_bar(ui: CanvasLayer):
 	var people_refs: Dictionary = PeoplePanelFactoryScript.build(ui)
 	people_panel = people_refs["panel"]
 	people_detail_label = people_refs["detail_label"]
+
+	resource_display = BaseCampResourceDisplayScript.new()
+	resource_display.setup({
+		"gold_label": gold_label,
+		"faith_label": faith_label,
+		"people_label": believers_label,
+		"people_panel": people_panel,
+		"people_detail_label": people_detail_label,
+	})
 
 	_refresh_resource_labels()
 
