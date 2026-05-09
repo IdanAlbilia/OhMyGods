@@ -23,6 +23,7 @@ const MissionPanelFactoryScript: GDScript = preload("res://scripts/ui/mission_pa
 const TopBarFactoryScript: GDScript = preload("res://scripts/ui/top_bar_factory.gd")
 const PeoplePanelFactoryScript: GDScript = preload("res://scripts/ui/people_panel_factory.gd")
 const BaseCampPanelVisibilityScript: GDScript = preload("res://scripts/ui/base_camp_panel_visibility.gd")
+const BaseCampResourceDisplayScript: GDScript = preload("res://scripts/ui/base_camp_resource_display.gd")
 const WHEEL_POPUP_SCENE := preload("res://scenes/ui/wheel_of_faith_popup.tscn")
 const CRUSADE_RESULT_POPUP_SCENE := preload("res://scenes/ui/crusade_result_popup.tscn")
 const BUILD_MENU_SCENE := preload("res://scenes/ui/build_menu.tscn")
@@ -224,6 +225,7 @@ var road_controller: RoadPlacementController = null
 var camera_controller: CameraController = null
 var campaign_navigation_controller: RefCounted = null
 var panel_visibility_controller: RefCounted = null
+var resource_display: RefCounted = null
 
 # Active construction (one at a time)
 var active_construction_node: StaticBody2D = null
@@ -453,6 +455,15 @@ func _build_ui():
 		"temple_panel": temple_panel,
 	})
 
+	resource_display = BaseCampResourceDisplayScript.new()
+	resource_display.setup({
+		"gold_label": gold_label,
+		"faith_label": faith_label,
+		"people_label": believers_label,
+		"people_panel": people_panel,
+		"people_detail_label": people_detail_label,
+	})
+
 
 func _build_top_bar(ui: CanvasLayer):
 	var top_bar: Dictionary = TopBarFactoryScript.build(
@@ -490,11 +501,7 @@ func _on_people_chip_input(event: InputEvent):
 
 
 func _refresh_people_panel():
-	people_detail_label.text = (
-		"Believers:   %d\n" % believers_count +
-		"Preachers:  %d\n" % preachers_count +
-		"Soldiers:    %d" % soldiers_count
-	)
+	resource_display.refresh_people_panel(believers_count, preachers_count, soldiers_count)
 
 
 func _build_info_popup(ui: CanvasLayer):
@@ -1800,13 +1807,7 @@ func _complete_spin(seg_index: int):
 
 # ── Resource display ──────────────────────────────────────────────────────────
 func _refresh_resource_labels():
-	gold_label.text      = "Gold  %d"   % gold
-	faith_label.text     = "Faith  %d"  % faith
-	var total_people := believers_count + preachers_count + soldiers_count
-	believers_label.text = "People  %d" % total_people
-	# Keep people popup fresh while it's open
-	if people_panel != null and people_panel.visible:
-		_refresh_people_panel()
+	resource_display.refresh(gold, faith, believers_count, preachers_count, soldiers_count)
 
 # ── Crusade functions ─────────────────────────────────────────────────────────
 
