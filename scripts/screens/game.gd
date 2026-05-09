@@ -22,6 +22,7 @@ const ShelterPanelFactoryScript: GDScript = preload("res://scripts/ui/shelter_pa
 const MissionPanelFactoryScript: GDScript = preload("res://scripts/ui/mission_panel_factory.gd")
 const TopBarFactoryScript: GDScript = preload("res://scripts/ui/top_bar_factory.gd")
 const PeoplePanelFactoryScript: GDScript = preload("res://scripts/ui/people_panel_factory.gd")
+const BaseCampPanelVisibilityScript: GDScript = preload("res://scripts/ui/base_camp_panel_visibility.gd")
 const WHEEL_POPUP_SCENE := preload("res://scenes/ui/wheel_of_faith_popup.tscn")
 const CRUSADE_RESULT_POPUP_SCENE := preload("res://scenes/ui/crusade_result_popup.tscn")
 const BUILD_MENU_SCENE := preload("res://scenes/ui/build_menu.tscn")
@@ -222,6 +223,7 @@ var placed_road_tiles: Array = []
 var road_controller: RoadPlacementController = null
 var camera_controller: CameraController = null
 var campaign_navigation_controller: RefCounted = null
+var panel_visibility_controller: RefCounted = null
 
 # Active construction (one at a time)
 var active_construction_node: StaticBody2D = null
@@ -440,6 +442,17 @@ func _build_ui():
 	_build_crusade_result_popup(ui)
 	_build_hero_deck_panel(ui)
 
+	panel_visibility_controller = BaseCampPanelVisibilityScript.new()
+	panel_visibility_controller.setup({
+		"conversion_panel": conversion_panel,
+		"training_panel": training_panel,
+		"preacher_shelter_panel": preacher_shelter_panel,
+		"garrison_panel": garrison_panel,
+		"shelter_panel": shelter_panel,
+		"extra_shelter_panel": extra_shelter_panel,
+		"temple_panel": temple_panel,
+	})
+
 
 func _build_top_bar(ui: CanvasLayer):
 	var top_bar: Dictionary = TopBarFactoryScript.build(
@@ -500,13 +513,7 @@ func _show_building_info(building: StaticBody2D, text: String):
 
 
 func _on_believer_shelter_tapped():
-	conversion_panel.visible = false
-	training_panel.visible = false
-	preacher_shelter_panel.visible = false
-	garrison_panel.visible = false
-	if extra_shelter_panel:
-		extra_shelter_panel.visible = false
-	shelter_panel.visible = not shelter_panel.visible
+	panel_visibility_controller.toggle_panel("shelter")
 	if shelter_panel.visible:
 		shelter_believer_label.text = "%d / 5" % mini(believers_count, 5)
 		if _has_session(0):
@@ -520,13 +527,7 @@ func _on_believer_shelter_tapped():
 
 
 func _on_preacher_shelter_tapped():
-	conversion_panel.visible = false
-	training_panel.visible = false
-	garrison_panel.visible = false
-	shelter_panel.visible = false
-	if extra_shelter_panel:
-		extra_shelter_panel.visible = false
-	preacher_shelter_panel.visible = not preacher_shelter_panel.visible
+	panel_visibility_controller.toggle_panel("preacher_shelter")
 	if preacher_shelter_panel.visible:
 		_refresh_preacher_label()
 
@@ -1324,11 +1325,7 @@ func _complete_construction():
 			var shelter_ref := b
 			extra_shelter_buildings.append(b)
 			b.tapped.connect(func():
-				shelter_panel.visible = false
-				conversion_panel.visible = false
-				training_panel.visible = false
-				preacher_shelter_panel.visible = false
-				garrison_panel.visible = false
+				panel_visibility_controller.hide_action_panels("extra_shelter")
 				current_extra_shelter_idx = extra_shelter_buildings.find(shelter_ref) + 1
 				_refresh_extra_shelter_panel()
 				extra_shelter_panel.visible = true
@@ -1347,13 +1344,7 @@ func _on_rush_pressed():
 
 
 func _on_temple_tapped():
-	conversion_panel.visible = false
-	training_panel.visible = false
-	preacher_shelter_panel.visible = false
-	garrison_panel.visible = false
-	shelter_panel.visible = false
-	if extra_shelter_panel:
-		extra_shelter_panel.visible = false
+	panel_visibility_controller.hide_action_panels("temple")
 	temple_panel.toggle_panel()
 	if temple_panel.visible:
 		_refresh_temple_panel()
@@ -1367,13 +1358,7 @@ func _refresh_temple_panel():
 
 
 func _on_hall_tapped():
-	training_panel.visible = false
-	preacher_shelter_panel.visible = false
-	garrison_panel.visible = false
-	shelter_panel.visible = false
-	if extra_shelter_panel:
-		extra_shelter_panel.visible = false
-	conversion_panel.visible = not conversion_panel.visible
+	panel_visibility_controller.toggle_panel("conversion")
 	if conversion_panel.visible:
 		_reset_conversion_ui()
 
@@ -1579,24 +1564,12 @@ func _reset_conversion_ui():
 
 # ── Armory / soldier training ─────────────────────────────────────────────────
 func _on_armory_tapped():
-	conversion_panel.visible = false
-	preacher_shelter_panel.visible = false
-	garrison_panel.visible = false
-	shelter_panel.visible = false
-	if extra_shelter_panel:
-		extra_shelter_panel.visible = false
-	training_panel.visible = not training_panel.visible
+	panel_visibility_controller.toggle_panel("training")
 	if training_panel.visible:
 		_reset_training_ui()
 
 func _on_garrison_tapped():
-	conversion_panel.visible = false
-	training_panel.visible = false
-	preacher_shelter_panel.visible = false
-	shelter_panel.visible = false
-	if extra_shelter_panel:
-		extra_shelter_panel.visible = false
-	garrison_panel.visible = not garrison_panel.visible
+	panel_visibility_controller.toggle_panel("garrison")
 	if garrison_panel.visible:
 		garrison_soldier_label.text = "%d / 5" % soldiers_in_garrison
 
