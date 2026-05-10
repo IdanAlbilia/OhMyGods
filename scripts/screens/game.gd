@@ -24,6 +24,7 @@ const TopBarFactoryScript: GDScript = preload("res://scripts/ui/top_bar_factory.
 const PeoplePanelFactoryScript: GDScript = preload("res://scripts/ui/people_panel_factory.gd")
 const BaseCampPanelVisibilityScript: GDScript = preload("res://scripts/ui/base_camp_panel_visibility.gd")
 const BaseCampResourceDisplayScript: GDScript = preload("res://scripts/ui/base_camp_resource_display.gd")
+const BaseCampToastScript: GDScript = preload("res://scripts/ui/base_camp_toast.gd")
 const WHEEL_POPUP_SCENE := preload("res://scenes/ui/wheel_of_faith_popup.tscn")
 const CRUSADE_RESULT_POPUP_SCENE := preload("res://scenes/ui/crusade_result_popup.tscn")
 const BUILD_MENU_SCENE := preload("res://scenes/ui/build_menu.tscn")
@@ -226,6 +227,7 @@ var camera_controller: CameraController = null
 var campaign_navigation_controller: RefCounted = null
 var panel_visibility_controller: RefCounted = null
 var resource_display: RefCounted = null
+var toast: RefCounted = null
 
 # Active construction (one at a time)
 var active_construction_node: StaticBody2D = null
@@ -400,12 +402,7 @@ func _build_world():
 
 
 func _show_road_hint(msg: String):
-	if tutorial_label == null:
-		return
-	tutorial_label.text = msg
-	get_tree().create_timer(5.0).timeout.connect(func():
-		if tutorial_label and tutorial_label.text == msg:
-			tutorial_label.text = "")
+	toast.show(msg)
 
 # ── Believers ────────────────────────────────────────────────────────────────
 func _spawn_believers():
@@ -1006,6 +1003,9 @@ func _build_tutorial_panel(ui: CanvasLayer):
 	rush_tutorial_arrow = refs["rush_arrow"]
 	wheel_tutorial_arrow = refs["wheel_arrow"]
 	tutorial_label = refs["toast_label"]
+
+	toast = BaseCampToastScript.new()
+	toast.setup(tutorial_label, get_tree())
 
 
 func _build_construction_panel(ui: CanvasLayer):
