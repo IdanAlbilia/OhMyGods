@@ -2,6 +2,9 @@ class_name BaseCampState
 extends RefCounted
 
 const BUILDING_SCRIPT := preload("res://scripts/entities/building.gd")
+const RoadTilesScript: GDScript = preload("res://scripts/systems/road_tiles.gd")
+const BaseCampBuildingFactoryScript: GDScript = preload("res://scripts/systems/base_camp_building_factory.gd")
+const BuildingConstructionCatalogScript: GDScript = preload("res://scripts/systems/building_construction_catalog.gd")
 const BELIEVER_SCENE := preload("res://scenes/believer.tscn")
 const MARCUS_SCENE := preload("res://scenes/entities/marcus_character.tscn")
 
@@ -106,24 +109,20 @@ static func _capture_active_construction(game: Node) -> Dictionary:
 static func _restore_roads(game: Node, roads: Array) -> void:
 	game.placed_road_tiles.clear()
 	for road in roads:
-		var spr := Sprite2D.new()
 		var type := str(road.get("type", ""))
-		spr.texture = game._road_texture(type)
-		game.road_rotation_deg = int(road.get("rotation", 0))
-		game._apply_road_scale(spr, type)
-		spr.position = road.get("position", Vector2.ZERO)
+		var rotation := int(road.get("rotation", 0))
+		var spr: Sprite2D = RoadTilesScript.make_sprite(type, road.get("position", Vector2.ZERO), rotation)
 		game.world.add_child(spr)
 		game.world.move_child(spr, 1)
 		game.placed_road_tiles.append(road.duplicate(true))
-	game.road_rotation_deg = 0
 
 static func _restore_buildings(game: Node, state: Dictionary) -> void:
 	var active: Dictionary = state.get("active_construction", {})
 	for data in state.get("buildings", []):
 		var type := str(data.get("type", ""))
-		var label := str(data.get("label", _label_for(type)))
+		var label := str(data.get("label", BuildingConstructionCatalogScript.get_label(type)))
 		var pos: Vector2 = data.get("position", Vector2.ZERO)
-		var b: StaticBody2D = game._make_building(type, pos, label, false)
+		var b: StaticBody2D = BaseCampBuildingFactoryScript.make(game.world, type, pos, label, false)
 		game.blocked_zones.append({"pos": pos, "radius": 85.0})
 		if bool(data.get("under_construction", false)):
 			b.set_meta("under_construction", true)
@@ -251,17 +250,3 @@ static func _refresh_ui(game: Node) -> void:
 		game.build_menu.set_generals_quarters_unlocked(game.marcus_obtained)
 	if game.wheel_chip_node != null:
 		game.wheel_chip_node.visible = game.wheel_available
-
-static func _label_for(type: String) -> String:
-	match type:
-		"temple": return "Small Temple"
-		"hall_of_devoted": return "Hall of the Devoted"
-		"preacher_shelter": return "Preacher Shelter"
-		"armory": return "Barracks"
-		"garrison": return "Garrison"
-		"generals_quarters": return "General's Quarters"
-		"shelter": return "Believer Shelter"
-		"well": return "Wishing Well"
-		"garden": return "Pumpkin Garden"
-		"stone_pool": return "Stone Pool"
-	return "Building"
